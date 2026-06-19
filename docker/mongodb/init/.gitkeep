@@ -1,0 +1,5 @@
+# Drop *.js or *.sh files here to seed the database on first boot.
+# They run automatically (in alphabetical order) via mongo's
+# /docker-entrypoint-initdb.d hook the first time the volume is created.
+# e.g. 01-collections.js  (create `jerga` + `results` collections + indexes)
+#      02-seed-jerga.js   (insert the slang corpus)
