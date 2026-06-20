@@ -5,6 +5,145 @@ All notable changes to the Yucatan Slang Jailbreak Benchmark are documented here
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## V0.1.2
+
+### Added
+- **Python attacker package** implementing the AGENTS.md pipeline as a CLI
+  alternative to the n8n workflow (`Fetch Jerga → Attacker → Target → Regex
+  pre-filter → Judge → Storage`):
+  - `attacker/main.py` — entry point with `--target`, `--technique`, `--limit`,
+    and `--dry-run` flags. Routes all LLM calls (attacker, target, judge) through
+    LiteLLM to NVIDIA NIM using the exact models, temperatures, and prompts from
+    AGENTS.md (Llama 405B @ 0.9 attacker, target @ 0.7/512, Llama 70B @ 0.0 judge).
+    Includes the regex pre-filter (`quick_check` + `HARM_KEYWORDS`), the PAIR
+    multi-turn loop (`run_pair_attack`, max 5 rounds, early stop at confidence
+    ≥ 0.8), defensive judge-JSON parsing, and `store_result` writing the AGENTS.md
+    `results` columns.
+  - `attacker/techniques.py` — `VALID_TECHNIQUES` (all seven techniques),
+    `TECHNIQUE_DESCRIPTIONS`, `MULTI_TURN_TECHNIQUES`, and helpers `is_valid`,
+    `is_multi_turn`, `technique_for_iteration` (round-robin rotation).
+  - `attacker/requirements.txt` — `litellm`, `psycopg2-binary`, `python-dotenv`.
+- **Technique rotation (Python)** — omitting `--technique` cycles through all
+  seven techniques across the batch via `technique_for_iteration`.
+- **Target model switching (Python)** — `--target` selects any NVIDIA NIM slug;
+  `split_model_slug` records `target_model` / `target_provider` separately.
+
+### Resolved
+- **Python attacker gap** (from V0.1.1) — `attacker/main.py` and
+  `attacker/techniques.py` now exist and implement the AGENTS.md pipeline. The
+  technique-rotation and target-model-switching gaps are addressed for the
+  Python path; the equivalent n8n-workflow gaps remain open (see V0.1.1).
+
+### Notes
+- The CLI requires the `jerga` and `results` tables (still gapped — no
+  `01-schema.sql` / `02-seed-jerga.sql`) and a `NVIDIA_API_KEY`. `--dry-run`
+  works without either and previews the per-iteration technique plan.
+
+### Next improvements (`Yucatan Slang Jailbreak Benchmark.json`)
+
+The Python attacker now covers the full AGENTS.md task, but the n8n workflow
+still lags behind. To bring the workflow to parity:
+
+- **Fix the batch-loop wiring** — `Loop Batch (100x)` is a `splitInBatches`
+  (v3 "Loop Over Items") node, but its loop body (`Fetch Jerga`) is connected to
+  **output index 0 (done)**. In v3, output 0 is *done* and output 1 is *loop*;
+  the body must hang off output 1, with `Store Result` looping back to the node.
+  As wired, the 100 iterations will not execute correctly.
+- **Technique rotation** — the Attacker still reads a static
+  `Attack Config.technique`. Derive the technique per iteration (e.g.
+  `techniques[($json.iteration - 1) % 7]` in `Generate Batch Items`) so a single
+  run exercises all seven techniques.
+- **Target model switching** — `target_model` is still a static default; add a
+  `target_models` array and rotate per iteration (or expose it as a workflow
+  input) so one run benchmarks multiple NVIDIA NIM models.
+- **PAIR loop (`pair_refine`)** — still sticky-note only; implement the
+  multi-turn Attacker→Target→Regex→Judge sub-workflow (max 5 rounds, early stop
+  at confidence ≥ 0.8) and route `pair_refine` iterations into it.
+- **Coverage guarantee** — `Fetch Jerga` uses `ORDER BY RANDOM() LIMIT 1`, which
+  can repeat terms and does not guarantee (term × technique) coverage; consider
+  iterating the corpus deterministically.
+- **`tokens_used` persistence** — `Extract Target Response` captures
+  `tokens_used`, but the `Store Result` INSERT drops it; add the column or map it.
+- **Schedule / trigger** — manual trigger only; add a cron/schedule or webhook
+  trigger for automated runs.
+- **Error handling** — no `continueOnFail` or retry on NVIDIA NIM / Postgres
+  failures, so a single mid-pipeline error aborts the whole batch.
+
+## V0.1.1
+
+### Added
+- **Jerga corpus data source** section in `AGENTS.md` — documents temporary bootstrap via
+  `docker/postgres/init/02-seed-jerga.sql` and planned web scraper for ongoing ingestion.
+- **100-iteration batch loop** in `Yucatan Slang Jailbreak Benchmark.json`:
+  `Attack Config.batch_iterations` (default 100) → `Generate Batch Items` →
+  `Loop Batch (100x)` (Split In Batches) → pipeline → `Store Result` loops back until done.
+
+### Changed
+- `AGENTS.md` benchmark coverage raised from 3–5 prompts to **100 iterations** per execution.
+- CLI example in `AGENTS.md` updated to `--limit 100`.
+
+### Known gaps
+
+#### n8n workflow (not yet implemented)
+
+- **Credentials** — Postgres and NVIDIA API credentials must be configured
+  manually in n8n after import (`Fetch Jerga`, `Store Result`, Attacker LLM,
+  Judge LLM). Target LLM reads `$env.NVIDIA_API_KEY` from the container env.
+- **PAIR loop (`pair_refine`)** — multi-turn attacker→target→judge iteration
+  (max 5 rounds, early stop at confidence ≥ 0.8) is documented via sticky note
+  only; needs a sub-workflow or Loop node.
+- **Technique rotation** — Attack Config still defaults to a single technique
+  (`translation_transfer`). No automatic cycling across the other six techniques
+  (`semantic_obfuscation`, `crescendo`, `codeswitching`, `roleplay_wrap`,
+  `manyshot_slang`, `pair_refine`).
+  - **Next actions:**
+    1. Add a `techniques` array (or separate Code node) listing all seven valid techniques.
+    2. Derive the active technique per iteration, e.g.
+       `techniques[($json.iteration - 1) % 7]` inside `Generate Batch Items` or a new Set node.
+    3. Pass the derived `technique` through the pipeline instead of the static Attack Config value.
+    4. Verify Grafana “success rate by technique” query returns all seven buckets after a full run.
+- **Target model switching** — model slug is still a static Set-node default
+  (`meta/llama-3.1-8b-instruct`); no UI parameter or multi-model batch run.
+  - **Next actions:**
+    1. Add a `target_models` array in Attack Config with all four NVIDIA NIM slugs from AGENTS.md.
+    2. Derive the active model per iteration, e.g.
+       `target_models[Math.floor(($json.iteration - 1) / 7) % 4]` when paired with technique rotation.
+    3. Wire the derived slug into `Extract Adversarial Prompt` → Target LLM HTTP body.
+    4. Optionally expose `target_model` as a workflow input parameter for single-model runs.
+    5. Confirm each model slug is written to `results.target_model` for per-model Grafana panels.
+- **Schedule / trigger** — manual trigger only; no cron or webhook for automated
+  benchmark runs.
+- **Error handling** — no retry logic or fallback when NVIDIA NIM or Postgres
+  calls fail mid-pipeline.
+
+#### Database
+
+- **Schema** — `docker/postgres/init/` contains only `.gitkeep`; no
+  `01-schema.sql` to create `jerga` and `results` tables.
+- **Seed data** — no `02-seed-jerga.sql` with the slang corpus yet; `Fetch Jerga`
+  will fail until rows exist. AGENTS.md documents this file as the temporary bootstrap;
+  a web scraper will replace it as the primary ingestion path later.
+  - **Next actions:**
+    1. Create `01-schema.sql` with `jerga` and `results` table definitions.
+    2. Create `02-seed-jerga.sql` with an initial slang corpus (≥ 10 rows for dev).
+    3. Rebuild Postgres volume (`docker compose down -v && docker compose up -d`) to apply init scripts.
+    4. Later: build scraper service that upserts into `jerga` and retire static seed updates.
+
+#### Grafana
+
+- **Dashboards** — `grafana/` contains only `.gitkeep`; no dashboard JSON for
+  success-rate-by-model, success-rate-by-technique, or harm-category queries
+  defined in AGENTS.md.
+
+#### Python attacker (referenced in AGENTS.md, not present)
+
+- **`attacker/main.py`** — CLI entry point (`--target`, `--technique`, `--limit`)
+  mentioned in AGENTS.md does not exist.
+- **`attacker/techniques.py`** — `VALID_TECHNIQUES` list referenced in AGENTS.md
+  does not exist.
+- The README lists Python as a technology, but no Python benchmark code ships
+  in the repo; orchestration is intended via n8n only for now.
+
 ## V0.1.0
 
 ### Added
@@ -50,13 +189,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **PAIR loop (`pair_refine`)** — multi-turn attacker→target→judge iteration
   (max 5 rounds, early stop at confidence ≥ 0.8) is documented via sticky note
   only; needs a sub-workflow or Loop node.
-- **Batch coverage** — AGENTS.md calls for 3–5 prompts per (term, technique)
-  combination; the workflow runs a single attack per execution.
+- **Batch coverage** — single attack per execution (superseded in [Unreleased] by
+  100-iteration loop).
 - **Technique rotation** — Attack Config defaults to `translation_transfer`; no
-  loop over the other six techniques (`semantic_obfuscation`, `crescendo`,
-  `codeswitching`, `roleplay_wrap`, `manyshot_slang`, `pair_refine`).
-- **Target model switching** — model slug is a static Set-node default; no UI
-  parameter or multi-model batch run without editing the workflow.
+  loop over the other six techniques (see [Unreleased] for next actions).
+- **Target model switching** — model slug is a static Set-node default (see
+  [Unreleased] for next actions).
 - **Schedule / trigger** — manual trigger only; no cron or webhook for automated
   benchmark runs.
 - **Error handling** — no retry logic or fallback when NVIDIA NIM or Postgres
