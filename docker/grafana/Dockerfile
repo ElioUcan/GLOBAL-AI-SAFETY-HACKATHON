@@ -1,7 +1,6 @@
 FROM grafana/grafana:11.1.0
 
-# MongoDB has no first-party Grafana datasource, so we install the community
-# plugin at build time. It is unsigned, hence the allow-list env var in compose.
-ENV GF_INSTALL_PLUGINS="https://github.com/haohanyang/mongodb-datasource/releases/latest/download/haohanyang-mongodb-datasource.zip;haohanyang-mongodb-datasource"
+# PostgreSQL is a first-party, built-in Grafana datasource — no plugin install
+# required. Provisioning wires it up from POSTGRES_* env vars (see compose.yml).
 
 EXPOSE 3000

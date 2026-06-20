@@ -1,13 +1,6 @@
 FROM n8nio/n8n:latest
 
-# n8n runs as the unprivileged "node" user in the official image.
-USER root
-
-# MongoDB community node so workflows can read jerga / write results
-# directly instead of going through raw HTTP. Optional but handy.
-RUN cd /usr/local/lib/node_modules/n8n \
-    && npm install n8n-nodes-mongodb --no-audit --no-fund || true
-
-USER node
+# n8n ships a first-party PostgreSQL node, so no community node install is
+# required for workflows to read jerga / write results. The image is used as-is.
 
 EXPOSE 5678

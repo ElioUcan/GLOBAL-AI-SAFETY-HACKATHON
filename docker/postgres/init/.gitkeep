@@ -1,0 +1,5 @@
+# Drop *.sql or *.sh files here to seed the database on first boot.
+# They run automatically (in alphabetical order) via postgres's
+# /docker-entrypoint-initdb.d hook the first time the volume is created.
+# e.g. 01-schema.sql   (create `jerga` + `results` tables + indexes)
+#      02-seed-jerga.sql (insert the slang corpus)

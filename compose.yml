@@ -2,25 +2,24 @@ name: slang-jailbreak-bench
 
 services:
   # ─────────────────────────────────────────────────────────────
-  # MongoDB — stores the jerga corpus + attack results
+  # PostgreSQL — stores the jerga corpus + attack results
   # ─────────────────────────────────────────────────────────────
-  mongodb:
+  postgres:
     build:
-      context: ./docker/mongodb
-    image: slang-bench/mongodb:latest
-    container_name: slang_mongodb
+      context: ./docker/postgres
+    image: slang-bench/postgres:latest
+    container_name: slang_postgres
     restart: unless-stopped
     environment:
-      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER:-admin}
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:-changeme}
-      MONGO_INITDB_DATABASE: ${MONGO_DB:-slang_bench}
+      POSTGRES_USER: ${POSTGRES_USER:-admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+      POSTGRES_DB: ${POSTGRES_DB:-slang_bench}
     ports:
-      - "${MONGO_PORT:-27017}:27017"
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
-      - mongo_data:/data/db
-      - mongo_config:/data/configdb
+      - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-admin} -d ${POSTGRES_DB:-slang_bench}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -47,9 +46,13 @@ services:
       N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY:-please-change-this-key}
       N8N_DIAGNOSTICS_ENABLED: "false"
       N8N_RUNNERS_ENABLED: "true"
-      # Credentials available to nodes (HTTP Request nodes read these).
+      # Credentials available to nodes (HTTP Request + Postgres nodes read these).
       # All target + attacker + judge LLMs are served by NVIDIA NIM.
-      MONGO_URL: mongodb://${MONGO_ROOT_USER:-admin}:${MONGO_ROOT_PASSWORD:-changeme}@mongodb:27017/${MONGO_DB:-slang_bench}?authSource=admin
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      POSTGRES_USER: ${POSTGRES_USER:-admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+      POSTGRES_DB: ${POSTGRES_DB:-slang_bench}
       NVIDIA_API_KEY: ${NVIDIA_API_KEY:-}
       NVIDIA_API_BASE: ${NVIDIA_API_BASE:-https://integrate.api.nvidia.com/v1}
     ports:
@@ -57,7 +60,7 @@ services:
     volumes:
       - n8n_data:/home/node/.n8n
     depends_on:
-      mongodb:
+      postgres:
         condition: service_healthy
     networks:
       - slang_net
@@ -75,9 +78,12 @@ services:
       GF_SECURITY_ADMIN_USER: ${GRAFANA_USER:-admin}
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
       GF_USERS_ALLOW_SIGN_UP: "false"
-      # MongoDB datasource is a community/unsigned plugin — allow it explicitly
-      GF_PLUGINS_ALLOW_LOADING_UNSIGNED_PLUGINS: haohanyang-mongodb-datasource
-      MONGO_URL: mongodb://${MONGO_ROOT_USER:-admin}:${MONGO_ROOT_PASSWORD:-changeme}@mongodb:27017/${MONGO_DB:-slang_bench}?authSource=admin
+      # PostgreSQL is a built-in, signed datasource — provisioning reads these.
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      POSTGRES_USER: ${POSTGRES_USER:-admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+      POSTGRES_DB: ${POSTGRES_DB:-slang_bench}
     ports:
       - "${GRAFANA_PORT:-3000}:3000"
     volumes:
@@ -85,14 +91,13 @@ services:
       - ./docker/grafana/provisioning:/etc/grafana/provisioning:ro
       - ./grafana:/var/lib/grafana/dashboards:ro
     depends_on:
-      mongodb:
+      postgres:
         condition: service_healthy
     networks:
       - slang_net
 
 volumes:
-  mongo_data:
-  mongo_config:
+  postgres_data:
   n8n_data:
   grafana_data:
 
