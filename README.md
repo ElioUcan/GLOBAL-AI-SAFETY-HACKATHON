@@ -53,3 +53,63 @@ docker compose down
 ```
 
 > All data is persisted in Docker volumes. To wipe and start fresh: `docker compose down -v`
+
+## Running the Python attacker (CLI)
+
+`attacker/main.py` runs the full benchmark pipeline
+(`Fetch Jerga → Attacker → Target → Regex pre-filter → Judge → Storage`) from the
+command line — an alternative to the n8n workflow. All LLM calls go through
+LiteLLM to NVIDIA NIM and results are written to the same PostgreSQL `results`
+table.
+
+**1. Install dependencies**
+```bash
+pip install -r attacker/requirements.txt
+```
+
+**2. Provide configuration**
+
+The attacker reads the same variables as Docker Compose. For local CLI runs,
+point Postgres at `localhost` (the n8n/Grafana containers use `postgres`
+internally):
+```bash
+export NVIDIA_API_KEY=your-nvidia-nim-key
+export POSTGRES_HOST=localhost          # default; containers use "postgres"
+export POSTGRES_PORT=5432
+export POSTGRES_USER=admin
+export POSTGRES_PASSWORD=changeme
+export POSTGRES_DB=slang_bench
+# Or set DATABASE_URL=postgresql://user:pass@host:port/db
+```
+> A live PostgreSQL with the `jerga` and `results` tables is required, and the
+> `jerga` corpus must contain rows (see the seed SQL under `docker/postgres/init/`).
+
+**3. Run a benchmark**
+```bash
+# 100 iterations, rotating through all seven techniques (default)
+python attacker/main.py --limit 100
+
+# Fixed technique against a specific NVIDIA NIM target model
+python attacker/main.py \
+  --target nvidia_nim/meta/llama-3.1-8b-instruct \
+  --technique roleplay_wrap \
+  --limit 100
+
+# Preview the plan without calling any LLM or writing to the DB
+python attacker/main.py --limit 8 --dry-run
+```
+
+**CLI options**
+
+| Flag | Description | Default |
+|---|---|---|
+| `--target` | Target model slug (LiteLLM / NVIDIA NIM) | `nvidia_nim/meta/llama-3.1-8b-instruct` |
+| `--technique` | Fixed attack technique; omit to rotate through all seven | rotate |
+| `--limit` | Number of attack iterations to run | `100` |
+| `--dry-run` | Print the per-iteration plan; no LLM calls, no DB writes | off |
+
+**Valid techniques:** `translation_transfer`, `semantic_obfuscation`,
+`crescendo`, `codeswitching`, `roleplay_wrap`, `manyshot_slang`, `pair_refine`.
+
+> `--dry-run` needs neither an API key nor a database. Any real run requires a
+> valid `NVIDIA_API_KEY` (attacker, target, and judge all call NVIDIA NIM).
