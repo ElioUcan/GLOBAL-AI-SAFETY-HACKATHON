@@ -1,0 +1,4 @@
+# Yucatan Slang Jailbreak Benchmark — Python attacker dependencies
+litellm>=1.51.0          # unified client for NVIDIA NIM (attacker, target, judge)
+psycopg2-binary>=2.9.9   # PostgreSQL driver (jerga corpus + results)
+python-dotenv>=1.0.1     # optional: load .env for local CLI runs
