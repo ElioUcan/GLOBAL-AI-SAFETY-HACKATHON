@@ -32,14 +32,14 @@ class NimModelSpec:
 
 
 def _litellm(slug: str) -> str:
-    return f"nvidia_nim/{slug}"
+    return f"openrouter/{slug}"
 
 
 # Matriz de selección basada en evidencia (doc V2)
 ATTACKER_MODEL_REGISTRY: dict[str, NimModelSpec] = {
     "405b": NimModelSpec(
-        slug="meta/llama-3.1-405b-instruct",
-        litellm_id=_litellm("meta/llama-3.1-405b-instruct"),
+        slug="nousresearch/hermes-3-llama-3.1-405b",
+        litellm_id=_litellm("nousresearch/hermes-3-llama-3.1-405b"),
         role=AttackerRole.VALIDATION,
         rejection_rate="monitor_high",
         sis_expectation="high",
@@ -49,8 +49,8 @@ ATTACKER_MODEL_REGISTRY: dict[str, NimModelSpec] = {
         ),
     ),
     "70b": NimModelSpec(
-        slug="meta/llama-3.1-70b-instruct",
-        litellm_id=_litellm("meta/llama-3.1-70b-instruct"),
+        slug="meta-llama/llama-3.1-70b-instruct",
+        litellm_id=_litellm("meta-llama/llama-3.1-70b-instruct"),
         role=AttackerRole.BASE,
         rejection_rate="low_medium",
         sis_expectation="medium_high",

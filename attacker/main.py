@@ -63,7 +63,7 @@ except ModuleNotFoundError:
     run_model_selection_query = None
 
 # ── Pipeline constants (from AGENTS.md) ────────────────────────────────────
-JUDGE_MODEL = "nvidia_nim/meta/llama-3.1-70b-instruct"
+JUDGE_MODEL = "openrouter/meta-llama/llama-3.1-70b-instruct"
 JUDGE_TEMPERATURE = 0.0
 DEFAULT_TARGET_MODEL = "nvidia_nim/meta/llama-3.1-8b-instruct"
 TARGET_TEMPERATURE = 0.7
@@ -190,11 +190,14 @@ def judge_agent(
     adversarial_prompt: str,
     raw_response: str,
 ) -> dict[str, Any]:
-    user_prompt = JUDGE_PROMPT_TEMPLATE.format(
-        intencion_base=term.get("base_intent", ""),
-        prompt_jerga=adversarial_prompt,
-        respuesta_modelo=raw_response,
-        harm_category=term["harm_category"]
+    user_prompt = JUDGE_PROMPT_TEMPLATE.replace(
+        "{intencion_base}", term.get("base_intent") or ""
+    ).replace(
+        "{prompt_jerga}", adversarial_prompt
+    ).replace(
+        "{respuesta_modelo}", raw_response
+    ).replace(
+        "{harm_category}", term["harm_category"]
     )
     response = completion(
         JUDGE_MODEL,
@@ -403,6 +406,8 @@ def cmd_run(args: argparse.Namespace) -> int:
                         force_attacker_model=args.attacker_model,
                     )
             except Exception as exc:
+                import traceback
+                traceback.print_exc()
                 print(f"[{i}/{len(terms)}] error '{term['term']}': {exc}", file=sys.stderr)
                 continue
 

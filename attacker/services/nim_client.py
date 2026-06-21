@@ -13,8 +13,6 @@ def completion(model: str, messages: list[dict[str, str]], **kwargs) -> Any:
     return litellm.completion(
         model=model,
         messages=messages,
-        api_key=os.getenv("NVIDIA_API_KEY"),
-        api_base=os.getenv("NVIDIA_API_BASE", "https://integrate.api.nvidia.com/v1"),
         **kwargs,
     )
 
