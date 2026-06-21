@@ -1,0 +1,652 @@
+{
+  "metadata": {
+    "dataset": "dataset_nuevo_piloto",
+    "version": "0.2.0-curado",
+    "fecha_generacion": "2026-06-21T15:40:26+00:00",
+    "linea": "C — fuentes vivas (curado)",
+    "total": 22,
+    "confianza": 2,
+    "nota": "22 lemas aprobados tras cola_revision_reddit. 15 duplicados rechazados.",
+    "fuente_cola": "data/processed/cola_revision_reddit.json"
+  },
+  "entradas": [
+    {
+      "termino": "a poco",
+      "significado": "¿de verdad?; expresión de incredulidad",
+      "tags": [
+        "Mexico",
+        "reddit"
+      ],
+      "pos": "unknown",
+      "fuentes": [
+        "reddit"
+      ],
+      "confianza": 2,
+      "region": "General México",
+      "estado": null,
+      "nivel_formalidad": "coloquial",
+      "estado_auto": false,
+      "ejemplo_uso": "Que show con el tráfico del Periférico, llevo dos horas y ni al caso. A poco creen que el gobierno va a arreglar algo.",
+      "validado_por": "revision_equipo",
+      "reddit": {
+        "subreddit": "mexico",
+        "comment_id": "fix003",
+        "permalink": "https://www.reddit.com/r/mexico/comments/fix003/ejemplo_que_show/",
+        "fecha_utc": "2026-06-20T20:00:00+00:00",
+        "score": 87,
+        "validacion_literal": true,
+        "metodo_extraccion": "heuristico"
+      },
+      "procedencia": "reddit_curado"
+    },
+    {
+      "termino": "aguas",
+      "significado": "¡cuidado!; advertencia",
+      "tags": [
+        "Mexico",
+        "reddit"
+      ],
+      "pos": "unknown",
+      "fuentes": [
+        "reddit"
+      ],
+      "confianza": 2,
+      "region": "General México",
+      "estado": null,
+      "nivel_formalidad": "coloquial",
+      "estado_auto": false,
+      "ejemplo_uso": "pa y terminamos bien crudos. La neta el aguas no sirvió de nada.",
+      "validado_por": "revision_equipo",
+      "reddit": {
+        "subreddit": "mexico",
+        "comment_id": "fix001",
+        "permalink": "https://www.reddit.com/r/mexico/comments/fix001/ejemplo_pachanga/",
+        "fecha_utc": "2026-06-20T18:30:00+00:00",
+        "score": 42,
+        "validacion_literal": true,
+        "metodo_extraccion": "heuristico"
+      },
+      "procedencia": "reddit_curado"
+    },
+    {
+      "termino": "alberca",
+      "significado": "piscina (uso extendido en México)",
+      "tags": [
+        "Mexico",
+        "reddit"
+      ],
+      "pos": "unknown",
+      "fuentes": [
+        "reddit"
+      ],
+      "confianza": 2,
+      "region": "General México",
+      "estado": null,
+      "nivel_formalidad": "coloquial",
+      "estado_auto": false,
+      "ejemplo_uso": "En mi rancho le decimos alberca al estanque donde nos echábamos de cham",
+      "validado_por": "revision_equipo",
+      "reddit": {
+        "subreddit": "mexico",
+        "comment_id": "fix008",
+        "permalink": "https://www.reddit.com/r/mexico/comments/fix008/ejemplo_alberca/",
+        "fecha_utc": "2026-06-21T05:00:00+00:00",
+        "score": 64,
+        "validacion_literal": true,
+        "metodo_extraccion": "heuristico"
+      },
+      "procedencia": "reddit_curado"
+    },
+    {
+      "termino": "carnalito",
+      "significado": "hermano menor; forma cariñosa de referirse a un hermano",
+      "tags": [
+        "Mexico",
+        "reddit"
+      ],
+      "pos": "unknown",
+      "fuentes": [
+        "reddit"
+      ],
+      "confianza": 2,
+      "region": "General México",
+      "estado": null,
+      "nivel_formalidad": "coloquial",
+      "estado_auto": false,
+      "ejemplo_uso": "¿Alguien más le dice carnalito a su hermano menor? Mi morra se burla p",
+      "validado_por": "revision_equipo",
+      "reddit": {
+        "subreddit": "mexico",
+        "comment_id": "fix002",
+        "permalink": "https://www.reddit.com/r/mexico/comments/fix002/ejemplo_carnalito/",
+        "fecha_utc": "2026-06-20T19:15:00+00:00",
+        "score": 18,
+        "validacion_literal": true,
+        "metodo_extraccion": "heuristico"
+      },
+      "procedencia": "reddit_curado"
+    },
+    {
+      "termino": "chalecito",
+      "significado": "ambiente relajado o situación sencilla (diminutivo de chale)",
+      "tags": [
+        "Mexico",
+        "reddit"
+      ],
+      "pos": "unknown",
+      "fuentes": [
+        "reddit"
+      ],
+      "confianza": 2,
+      "region": "General México",
+      "estado": null,
+      "nivel_formalidad": "coloquial",
+      "estado_auto": false,
+      "ejemplo_uso": "uien llevó su caguama. Puro ambiente de chalecito y música de rola.",
+      "validado_por": "revision_equipo",
+      "reddit": {
+        "subreddit": "mexico",
+        "comment_id": "fix006",
+        "permalink": "https://www.reddit.com/r/mexico/comments/fix006/ejemplo_la_banda/",
+        "fecha_utc": "2026-06-21T03:45:00+00:00",
+        "score": 23,
+        "validacion_literal": true,
+        "metodo_extraccion": "heuristico"
+      },
+      "procedencia": "reddit_curado"
+    },
+    {
+      "termino": "chambita",
+      "significado": "trabajo temporal o extra",
+      "tags": [
+        "Mexico",
+        "reddit"
+      ],
+      "pos": "unknown",
+      "fuentes": [
+        "reddit"
+      ],
+      "confianza": 2,
+      "region": "General México",
+      "estado": null,
+      "nivel_formalidad": "coloquial",
+      "estado_auto": false,
+      "ejemplo_uso": "ue está fregado porque le cancelaron la chambita de fin de semana. Gandalla el patrón, l",
+      "validado_por": "revision_equipo",
+      "reddit": {
+        "subreddit": "mexico",
+        "comment_id": "fix007",
+        "permalink": "https://www.reddit.com/r/mexico/comments/fix007/ejemplo_fregado/",
+        "fecha_utc": "2026-06-21T04:30:00+00:00",
+        "score": 12,
+        "validacion_literal": true,
+        "metodo_extraccion": "heuristico"
+      },
+      "procedencia": "reddit_curado"
+    },
+    {
+      "termino": "chincualo",
+      "significado": "algo novedoso o poco convencional (registro juvenil)",
+      "tags": [
+        "Mexico",
+        "reddit"
+      ],
+      "pos": "unknown",
+      "fuentes": [
+        "reddit"
+      ],
+      "confianza": 2,
+      "region": "General México",
+      "estado": null,
+      "nivel_formalidad": "coloquial",
+      "estado_auto": false,
+      "ejemplo_uso": "ro ya está bien quemado. Suban algo más chincualo, este sub necesita material fresco.",
+      "validado_por": "revision_equipo",
+      "reddit": {
+        "subreddit": "Memexico",
+        "comment_id": "fix012",
+        "permalink": "https://www.reddit.com/r/Memexico/comments/fix012/ejemplo_chincualo/",
+        "fecha_utc": "2026-06-21T09:00:00+00:00",
+        "score": 201,
+        "validacion_literal": true,
+        "metodo_extraccion": "heuristico"
+      },
+      "procedencia": "reddit_curado"
+    },
+    {
+      "termino": "chismoso",
+      "significado": "persona que difunde chismes",
+      "tags": [
+        "Mexico",
+        "reddit"
+      ],
+      "pos": "unknown",
+      "fuentes": [
+        "reddit"
+      ],
+      "confianza": 2,
+      "region": "General México",
+      "estado": null,
+      "nivel_formalidad": "coloquial",
+      "estado_auto": false,
+      "ejemplo_uso": "manches güey, ¿viste lo que publicó el chismoso de Twitter? Parece puro chafa pero la g",
+      "validado_por": "revision_equipo",
+      "reddit": {
+        "subreddit": "Memexico",
+        "comment_id": "fix009",
+        "permalink": "https://www.reddit.com/r/Memexico/comments/fix009/ejemplo_duplicados/",
+        "fecha_utc": "2026-06-21T06:15:00+00:00",
+        "score": 156,
+        "validacion_literal": true,
+        "metodo_extraccion": "heuristico"
+      },
+      "procedencia": "reddit_curado"
+    },
+    {
+      "termino": "faena",
+      "significado": "trabajo o tarea",
+      "tags": [
+        "Mexico",
+        "reddit"
+      ],
+      "pos": "unknown",
+      "fuentes": [
+        "reddit"
+      ],
+      "confianza": 2,
+      "region": "General México",
+      "estado": null,
+      "nivel_formalidad": "coloquial",
+      "estado_auto": false,
+      "ejemplo_uso": "Orale pues, si ya quedó la faena en el jale entonces nos vamos por unas",
+      "validado_por": "revision_equipo",
+      "reddit": {
+        "subreddit": "mexico",
+        "comment_id": "fix004",
+        "permalink": "https://www.reddit.com/r/mexico/comments/fix004/ejemplo_faena/",
+        "fecha_utc": "2026-06-21T01:22:00+00:00",
+        "score": 31,
+        "validacion_literal": true,
+        "metodo_extraccion": "heuristico"
+      },
+      "procedencia": "reddit_curado"
+    },
+    {
+      "termino": "feria",
+      "significado": "dinero (registro coloquial)",
+      "tags": [
+        "Mexico",
+        "reddit"
+      ],
+      "pos": "unknown",
+      "fuentes": [
+        "reddit"
+      ],
+      "confianza": 2,
+      "region": "General México",
+      "estado": null,
+      "nivel_formalidad": "coloquial",
+      "estado_auto": false,
+      "ejemplo_uso": "imón, ahí nos vemos en la esquina. Trae feria porque no hay cajero cerca y el puesto",
+      "validado_por": "revision_equipo",
+      "reddit": {
+        "subreddit": "mexico",
+        "comment_id": "fix010",
+        "permalink": "https://www.reddit.com/r/mexico/comments/fix010/ejemplo_feria/",
+        "fecha_utc": "2026-06-21T07:00:00+00:00",
+        "score": 9,
+        "validacion_literal": true,
+        "metodo_extraccion": "heuristico"
+      },
+      "procedencia": "reddit_curado"
+    },
+    {
+      "termino": "fregado",
+      "significado": "en mala situación; apretado de dinero",
+      "tags": [
+        "Mexico",
+        "reddit"
+      ],
+      "pos": "unknown",
+      "fuentes": [
+        "reddit"
+      ],
+      "confianza": 2,
+      "region": "General México",
+      "estado": null,
+      "nivel_formalidad": "coloquial",
+      "estado_auto": false,
+      "ejemplo_uso": "Mi compa dice que está fregado porque le cancelaron la chambita de fin",
+      "validado_por": "revision_equipo",
+      "reddit": {
+        "subreddit": "mexico",
+        "comment_id": "fix007",
+        "permalink": "https://www.reddit.com/r/mexico/comments/fix007/ejemplo_fregado/",
+        "fecha_utc": "2026-06-21T04:30:00+00:00",
+        "score": 12,
+        "validacion_literal": true,
+        "metodo_extraccion": "heuristico"
+      },
+      "procedencia": "reddit_curado"
+    },
+    {
+      "termino": "fuchi",
+      "significado": "asqueroso, desagradable (registro juvenil)",
+      "tags": [
+        "Mexico",
+        "reddit"
+      ],
+      "pos": "unknown",
+      "fuentes": [
+        "reddit"
+      ],
+      "confianza": 2,
+      "region": "General México",
+      "estado": null,
+      "nivel_formalidad": "coloquial",
+      "estado_auto": false,
+      "ejemplo_uso": "n chido el concierto pero la fila es un fuchi total. Traigan aguas con los revendedor",
+      "validado_por": "revision_equipo",
+      "reddit": {
+        "subreddit": "mexico",
+        "comment_id": "fix005",
+        "permalink": "https://www.reddit.com/r/mexico/comments/fix005/ejemplo_chido_duplicado/",
+        "fecha_utc": "2026-06-21T02:10:00+00:00",
+        "score": 55,
+        "validacion_literal": true,
+        "metodo_extraccion": "heuristico"
+      },
+      "procedencia": "reddit_curado"
+    },
+    {
+      "termino": "gandalla",
+      "significado": "persona mezquina o que actúa de mala fe",
+      "tags": [
+        "Mexico",
+        "reddit"
+      ],
+      "pos": "unknown",
+      "fuentes": [
+        "reddit"
+      ],
+      "confianza": 2,
+      "region": "General México",
+      "estado": null,
+      "nivel_formalidad": "coloquial",
+      "estado_auto": false,
+      "ejemplo_uso": "ancelaron la chambita de fin de semana. Gandalla el patrón, la neta.",
+      "validado_por": "revision_equipo",
+      "reddit": {
+        "subreddit": "mexico",
+        "comment_id": "fix007",
+        "permalink": "https://www.reddit.com/r/mexico/comments/fix007/ejemplo_fregado/",
+        "fecha_utc": "2026-06-21T04:30:00+00:00",
+        "score": 12,
+        "validacion_literal": true,
+        "metodo_extraccion": "heuristico"
+      },
+      "procedencia": "reddit_curado"
+    },
+    {
+      "termino": "gandallita",
+      "significado": "acción mezquina o de mala fe (diminutivo)",
+      "tags": [
+        "Mexico",
+        "reddit"
+      ],
+      "pos": "unknown",
+      "fuentes": [
+        "reddit"
+      ],
+      "confianza": 2,
+      "region": "General México",
+      "estado": null,
+      "nivel_formalidad": "coloquial",
+      "estado_auto": false,
+      "ejemplo_uso": "El vato de la tienda me cobró de gandallita, me dijo que el precio de lista ya no a",
+      "validado_por": "revision_equipo",
+      "reddit": {
+        "subreddit": "mexico",
+        "comment_id": "fix011",
+        "permalink": "https://www.reddit.com/r/mexico/comments/fix011/ejemplo_gandallita/",
+        "fecha_utc": "2026-06-21T08:20:00+00:00",
+        "score": 44,
+        "validacion_literal": true,
+        "metodo_extraccion": "heuristico"
+      },
+      "procedencia": "reddit_curado"
+    },
+    {
+      "termino": "la banda",
+      "significado": "el grupo de amigos o compañeros",
+      "tags": [
+        "Mexico",
+        "reddit"
+      ],
+      "pos": "unknown",
+      "fuentes": [
+        "reddit"
+      ],
+      "confianza": 2,
+      "region": "General México",
+      "estado": null,
+      "nivel_formalidad": "coloquial",
+      "estado_auto": false,
+      "ejemplo_uso": "La banda del barrio organizó un asado y cada quien llevó su caguama. Puro ambiente de chalecito y música de rola.",
+      "validado_por": "revision_equipo",
+      "reddit": {
+        "subreddit": "mexico",
+        "comment_id": "fix006",
+        "permalink": "https://www.reddit.com/r/mexico/comments/fix006/ejemplo_la_banda/",
+        "fecha_utc": "2026-06-21T03:45:00+00:00",
+        "score": 23,
+        "validacion_literal": true,
+        "metodo_extraccion": "heuristico"
+      },
+      "procedencia": "reddit_curado"
+    },
+    {
+      "termino": "malandro",
+      "significado": "persona de comportamiento cuestionable; jefe autoritario en contexto laboral",
+      "tags": [
+        "Mexico",
+        "reddit"
+      ],
+      "pos": "unknown",
+      "fuentes": [
+        "reddit"
+      ],
+      "confianza": 2,
+      "region": "General México",
+      "estado": null,
+      "nivel_formalidad": "coloquial",
+      "estado_auto": false,
+      "ejemplo_uso": "vamos por unas chelas. El jefe está de malandro hoy.",
+      "validado_por": "revision_equipo",
+      "reddit": {
+        "subreddit": "mexico",
+        "comment_id": "fix004",
+        "permalink": "https://www.reddit.com/r/mexico/comments/fix004/ejemplo_faena/",
+        "fecha_utc": "2026-06-21T01:22:00+00:00",
+        "score": 31,
+        "validacion_literal": true,
+        "metodo_extraccion": "heuristico"
+      },
+      "procedencia": "reddit_curado"
+    },
+    {
+      "termino": "morra",
+      "significado": "mujer joven (registro coloquial)",
+      "tags": [
+        "Mexico",
+        "reddit"
+      ],
+      "pos": "unknown",
+      "fuentes": [
+        "reddit"
+      ],
+      "confianza": 2,
+      "region": "General México",
+      "estado": null,
+      "nivel_formalidad": "coloquial",
+      "estado_auto": false,
+      "ejemplo_uso": "e dice carnalito a su hermano menor? Mi morra se burla porque dice que suena bien nac",
+      "validado_por": "revision_equipo",
+      "reddit": {
+        "subreddit": "mexico",
+        "comment_id": "fix002",
+        "permalink": "https://www.reddit.com/r/mexico/comments/fix002/ejemplo_carnalito/",
+        "fecha_utc": "2026-06-20T19:15:00+00:00",
+        "score": 18,
+        "validacion_literal": true,
+        "metodo_extraccion": "heuristico"
+      },
+      "procedencia": "reddit_curado"
+    },
+    {
+      "termino": "morras",
+      "significado": "mujeres jóvenes (registro coloquial)",
+      "tags": [
+        "Mexico",
+        "reddit"
+      ],
+      "pos": "unknown",
+      "fuentes": [
+        "reddit"
+      ],
+      "confianza": 2,
+      "region": "General México",
+      "estado": null,
+      "nivel_formalidad": "coloquial",
+      "estado_auto": false,
+      "ejemplo_uso": "Morras, ¿recomiendan algún lugar para comer ba",
+      "validado_por": "revision_equipo",
+      "reddit": {
+        "subreddit": "mexico",
+        "comment_id": "fix014",
+        "permalink": "https://www.reddit.com/r/mexico/comments/fix014/ejemplo_morras/",
+        "fecha_utc": "2026-06-21T11:45:00+00:00",
+        "score": 33,
+        "validacion_literal": true,
+        "metodo_extraccion": "heuristico"
+      },
+      "procedencia": "reddit_curado"
+    },
+    {
+      "termino": "morros",
+      "significado": "niños o jóvenes (registro coloquial)",
+      "tags": [
+        "Mexico",
+        "reddit"
+      ],
+      "pos": "unknown",
+      "fuentes": [
+        "reddit"
+      ],
+      "confianza": 2,
+      "region": "General México",
+      "estado": null,
+      "nivel_formalidad": "coloquial",
+      "estado_auto": false,
+      "ejemplo_uso": "hoy, perfecto para ir al parque con los morros. Ojalá no llueva como ayer.",
+      "validado_por": "revision_equipo",
+      "reddit": {
+        "subreddit": "mexico",
+        "comment_id": "fix015",
+        "permalink": "https://www.reddit.com/r/mexico/comments/fix015/ejemplo_morros/",
+        "fecha_utc": "2026-06-21T12:00:00+00:00",
+        "score": 28,
+        "validacion_literal": true,
+        "metodo_extraccion": "heuristico"
+      },
+      "procedencia": "reddit_curado"
+    },
+    {
+      "termino": "pachanga",
+      "significado": "fiesta o reunión social informal",
+      "tags": [
+        "Mexico",
+        "reddit"
+      ],
+      "pos": "unknown",
+      "fuentes": [
+        "reddit"
+      ],
+      "confianza": 2,
+      "region": "General México",
+      "estado": null,
+      "nivel_formalidad": "coloquial",
+      "estado_auto": false,
+      "ejemplo_uso": "No mames wey, ayer hubo una pachanga en la casa del compa y terminamos bien",
+      "validado_por": "revision_equipo",
+      "reddit": {
+        "subreddit": "mexico",
+        "comment_id": "fix001",
+        "permalink": "https://www.reddit.com/r/mexico/comments/fix001/ejemplo_pachanga/",
+        "fecha_utc": "2026-06-20T18:30:00+00:00",
+        "score": 42,
+        "validacion_literal": true,
+        "metodo_extraccion": "heuristico"
+      },
+      "procedencia": "reddit_curado"
+    },
+    {
+      "termino": "que show",
+      "significado": "expresión de sorpresa o indignación ante una situación",
+      "tags": [
+        "Mexico",
+        "reddit"
+      ],
+      "pos": "unknown",
+      "fuentes": [
+        "reddit"
+      ],
+      "confianza": 2,
+      "region": "General México",
+      "estado": null,
+      "nivel_formalidad": "coloquial",
+      "estado_auto": false,
+      "ejemplo_uso": "Que show con el tráfico del Periférico, llevo dos horas y ni al caso. A poco creen que el gobierno va a arreglar algo.",
+      "validado_por": "revision_equipo",
+      "reddit": {
+        "subreddit": "mexico",
+        "comment_id": "fix003",
+        "permalink": "https://www.reddit.com/r/mexico/comments/fix003/ejemplo_que_show/",
+        "fecha_utc": "2026-06-20T20:00:00+00:00",
+        "score": 87,
+        "validacion_literal": true,
+        "metodo_extraccion": "heuristico"
+      },
+      "procedencia": "reddit_curado"
+    },
+    {
+      "termino": "órale",
+      "significado": "expresión de acuerdo, sorpresa o ánimo",
+      "tags": [
+        "Mexico",
+        "reddit"
+      ],
+      "pos": "unknown",
+      "fuentes": [
+        "reddit"
+      ],
+      "confianza": 2,
+      "region": "General México",
+      "estado": null,
+      "nivel_formalidad": "coloquial",
+      "estado_auto": false,
+      "ejemplo_uso": "Orale pues, si ya quedó la faena en el jale e",
+      "validado_por": "revision_equipo",
+      "reddit": {
+        "subreddit": "mexico",
+        "comment_id": "fix004",
+        "permalink": "https://www.reddit.com/r/mexico/comments/fix004/ejemplo_faena/",
+        "fecha_utc": "2026-06-21T01:22:00+00:00",
+        "score": 31,
+        "validacion_literal": true,
+        "metodo_extraccion": "heuristico"
+      },
+      "procedencia": "reddit_curado"
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "fecha_congelamiento": "2026-06-21",
+  "version": "0.2.0-curado",
+  "archivos_inamovibles": [
+    "dataset_original_605.json",
+    "dataset_nuevo_piloto.json",
+    "dataset_combinado.json"
+  ],
+  "regla": "No sobrescribir estos archivos. Cualquier iteración debe escribir en data/processed/datasets/iteraciones/<nombre>/",
+  "referencia": "ESTADO_PROYECTO.md → Línea C → Datasets congelados"
+}
