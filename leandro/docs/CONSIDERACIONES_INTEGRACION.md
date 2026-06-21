@@ -14,7 +14,7 @@ Documento para el equipo (Lizandro + hackathon). Describe qué se cargó en la b
 
 | Item | Estado |
 |------|--------|
-| **Base** | `slang_bench` en Postgres puerto **5433** (`slang_postgres`; evita choque con `jergas_db` en 5432) |
+| **Base** | `slang_bench` en Postgres puerto **5433** vía `POSTGRES_PORT` (sin editar `compose.yml`; evita choque con `jergas_db` en 5432) |
 | **Filas `jerga`** | **1 575** (525 términos × 3 behaviors HarmBench cada uno) |
 | **Filas `jerga_metadata`** | **1 575** (trazabilidad; el pipeline no la lee) |
 | **Términos únicos** | **525** (`dataset_combinado.json`, `confianza ≥ 2`) |
@@ -242,48 +242,136 @@ Variables de entorno: `DATABASE_URL` o `POSTGRES_HOST`, `POSTGRES_PORT`, `POSTGR
 
 ## 5. Cómo correr la migración / ingesta
 
-### Levantar Postgres (puerto 5433)
+### Puerto Postgres: variable de entorno (sin editar archivos trackeados)
 
-```bash
-cd referencia-hackathon/Lizandro
-POSTGRES_PORT=5433 docker compose up -d postgres
+El `compose.yml` de Lizandro **ya soporta** mapeo de puerto vía env var:
+
+```yaml
+ports:
+  - "${POSTGRES_PORT:-5432}:5432"
 ```
 
-### Dry-run
+**No hace falta** editar `compose.yml`, crear `docker-compose.override.yml` ni tocar archivos trackeados. Solo exportar `POSTGRES_PORT` antes de `docker compose` **y** antes de los scripts Python (mismo valor en ambos).
+
+Puerto sugerido: **5433** (evita choque con otras Postgres locales en 5432, p. ej. `jergas_db`).
+
+#### Si 5433 (u otro puerto) ya está ocupado
+
+Elegir un puerto libre y usarlo de forma consistente en todo el flujo:
+
+```bash
+# Linux/WSL — primer puerto libre entre 5433–5440
+for p in 5433 5434 5435 5436 5437 5438 5439 5440; do
+  if ! ss -tln 2>/dev/null | grep -q ":${p} "; then
+    export POSTGRES_PORT=$p
+    echo "Usando POSTGRES_PORT=$POSTGRES_PORT"
+    break
+  fi
+done
+# macOS alternativa: lsof -iTCP:$p -sTCP:LISTEN
+```
+
+Si ya existe un contenedor `slang_postgres` de otra carpeta/proyecto, detenerlo antes de recrear el volumen:
+
+```bash
+docker stop slang_postgres 2>/dev/null
+docker rm slang_postgres 2>/dev/null
+```
+
+> El `compose.yml` fija `container_name: slang_postgres`; solo puede haber **uno** en la máquina.
+
+---
+
+### Guía paso a paso (clon limpio, solo este documento)
+
+Repo: [ElioUcan/GLOBAL-AI-SAFETY-HACKATHON](https://github.com/ElioUcan/GLOBAL-AI-SAFETY-HACKATHON). PR: rama **`leandro`** → **`Lizandro`**.
+
+**0. Clonar y entrar a la rama del PR**
+
+```bash
+git clone https://github.com/ElioUcan/GLOBAL-AI-SAFETY-HACKATHON.git
+cd GLOBAL-AI-SAFETY-HACKATHON
+git checkout leandro
+```
+
+**1. Traer el schema Postgres de Lizandro (obligatorio en rama `leandro` sola)**
+
+La rama `leandro` no incluye `docker/postgres/init/01-schema.sql` (vive en `Lizandro`; esta PR no lo modifica). Sin esos SQL, Postgres arranca vacío y `--apply` falla con `relation "jerga" does not exist`.
+
+```bash
+git fetch origin Lizandro
+git checkout origin/Lizandro -- docker/postgres/init/
+```
+
+Tras merge del PR a `Lizandro`, este paso deja de ser necesario.
+
+**2. Elegir puerto y dependencias Python**
+
+```bash
+export POSTGRES_PORT=5433   # o el puerto libre del bloque anterior
+python3 -m pip install -r leandro/requirements.txt
+```
+
+**3. Levantar Postgres (solo el servicio postgres)**
+
+Desde la **raíz del repo** (donde está `compose.yml`):
+
+```bash
+# Primera vez o si el volumen tiene schema antiguo pre-a2befb4:
+POSTGRES_PORT=$POSTGRES_PORT docker compose down -v
+
+POSTGRES_PORT=$POSTGRES_PORT docker compose up -d --build postgres
+```
+
+Esperar ~10 s y comprobar tablas:
+
+```bash
+docker exec slang_postgres psql -U admin -d slang_bench -c "\dt"
+# Debe listar jerga, results, attacker_calibration
+```
+
+Credenciales por defecto: usuario `admin`, contraseña `changeme`, base `slang_bench`.
+
+**4. Dry-run (sin escribir en BD)**
 
 ```bash
 python3 leandro/scripts/ingest_slang_bench.py --dry-run --min-confianza 2 --behaviors-per-term 3
 ```
 
-### Aplicar (idempotente; trunca y repuebla `jerga`)
+Esperado: resumen con **1575** filas, **525** términos, 525 por `harm_category`.
+
+**5. Aplicar ingesta (idempotente; trunca y repuebla `jerga`)**
 
 ```bash
-POSTGRES_PORT=5433 python3 leandro/scripts/ingest_slang_bench.py --apply --min-confianza 2 --behaviors-per-term 3
+POSTGRES_PORT=$POSTGRES_PORT python3 leandro/scripts/ingest_slang_bench.py --apply --min-confianza 2 --behaviors-per-term 3
 ```
 
-### Verificar
+**6. Verificar**
 
 ```bash
-POSTGRES_PORT=5433 python3 leandro/scripts/ingest_slang_bench.py --verify-only
+POSTGRES_PORT=$POSTGRES_PORT python3 leandro/scripts/ingest_slang_bench.py --verify-only
 ```
+
+Esperado: `jerga: 1575 | jerga_metadata: 1575`, balance 525/525/525 por categoría.
 
 Consultas SQL adicionales (`base_intent`, `semantic_category`):
 
 ```bash
-docker exec -it slang_postgres psql -U admin -d slang_bench -c \
+docker exec slang_postgres psql -U admin -d slang_bench -c \
   "SELECT COUNT(*) AS total,
           COUNT(*) FILTER (WHERE base_intent IS NULL OR TRIM(base_intent) = '') AS base_intent_vacio
    FROM jerga;"
 
-docker exec -it slang_postgres psql -U admin -d slang_bench -c \
+docker exec slang_postgres psql -U admin -d slang_bench -c \
   "SELECT semantic_category, COUNT(*) FROM jerga_metadata GROUP BY 1 ORDER BY 2 DESC;"
 ```
 
-### Probar wiring Attacker sin API (ejemplo)
+**7. (Opcional) Probar wiring Attacker sin API**
+
+Desde la raíz del repo:
 
 ```bash
-cd referencia-hackathon/Lizandro
-POSTGRES_PORT=5433 python3 -c "
+POSTGRES_PORT=$POSTGRES_PORT python3 -c "
 import sys; sys.path.insert(0, '.')
 from attacker.storage.db import get_connection, fetch_jerga
 from attacker.prompts.attacker import build_user_prompt
@@ -294,6 +382,19 @@ for i, t in enumerate(terms, 1):
     print(build_user_prompt(t, technique_for_iteration(i)))
 conn.close()
 "
+```
+
+---
+
+### Referencia rápida (mismos comandos, puerto fijo 5433)
+
+Si ya exportaste `POSTGRES_PORT=5433` y completaste el paso 1 (schema):
+
+```bash
+POSTGRES_PORT=5433 docker compose up -d --build postgres
+python3 leandro/scripts/ingest_slang_bench.py --dry-run --min-confianza 2 --behaviors-per-term 3
+POSTGRES_PORT=5433 python3 leandro/scripts/ingest_slang_bench.py --apply --min-confianza 2 --behaviors-per-term 3
+POSTGRES_PORT=5433 python3 leandro/scripts/ingest_slang_bench.py --verify-only
 ```
 
 ### Parámetros

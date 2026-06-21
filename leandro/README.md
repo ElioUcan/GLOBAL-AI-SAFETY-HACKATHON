@@ -21,10 +21,16 @@ Artefactos del proyecto **Webscraping_Jergas_MX** para el hackathon.
 
 ## Ingesta slang_bench
 
+Guía completa paso a paso (clon limpio, puerto, schema Lizandro, verificación):
+[`docs/CONSIDERACIONES_INTEGRACION.md`](docs/CONSIDERACIONES_INTEGRACION.md) §5.
+
 ```bash
-# Postgres Lizandro en puerto 5433 (evita choque con otras BDs locales)
-POSTGRES_PORT=5433 python3 leandro/scripts/ingest_slang_bench.py --dry-run
-POSTGRES_PORT=5433 python3 leandro/scripts/ingest_slang_bench.py --apply
+python3 -m pip install -r leandro/requirements.txt
+export POSTGRES_PORT=5433   # env var; no editar compose.yml
+POSTGRES_PORT=$POSTGRES_PORT docker compose up -d --build postgres
+python3 leandro/scripts/ingest_slang_bench.py --dry-run --min-confianza 2 --behaviors-per-term 3
+POSTGRES_PORT=$POSTGRES_PORT python3 leandro/scripts/ingest_slang_bench.py --apply --min-confianza 2 --behaviors-per-term 3
+POSTGRES_PORT=$POSTGRES_PORT python3 leandro/scripts/ingest_slang_bench.py --verify-only
 ```
 
 Repo fuente completo: [Desiler1fro/Webscraping_Jergas_MX](https://github.com/Desiler1fro/Webscraping_Jergas_MX)
