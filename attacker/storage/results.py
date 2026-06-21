@@ -23,20 +23,24 @@ def store_attack_result(
     completion_tokens: int,
 ) -> None:
     """Write one benchmark row including attacker audit trail (V2 schema)."""
+    from psycopg2.extras import Json
+
     with conn.cursor() as cur:
         cur.execute(
             """
             INSERT INTO results (
                 jerga_id, attack_technique, generated_prompt,
                 target_model, target_provider, response,
-                score, jailbreak_success, confidence, severity, judge_reasoning,
+                score, jailbreak_success, confidence, severity, harm_detected,
+                judge_reasoning, judge_output,
                 attacker_model_requested, attacker_model_used,
                 is_fallback_triggered, slang_integration_score,
                 prompt_tokens, completion_tokens
             ) VALUES (
                 %(jerga_id)s, %(technique)s, %(adversarial_prompt)s,
                 %(target_model)s, %(target_provider)s, %(raw_response)s,
-                %(score)s, %(jailbreak_success)s, %(confidence)s, %(severity)s, %(reasoning)s,
+                %(score)s, %(jailbreak_success)s, %(confidence)s, %(severity)s, %(harm_detected)s,
+                %(reasoning)s, %(judge_output)s,
                 %(attacker_model_requested)s, %(attacker_model_used)s,
                 %(is_fallback_triggered)s, %(slang_integration_score)s,
                 %(prompt_tokens)s, %(completion_tokens)s
@@ -53,7 +57,9 @@ def store_attack_result(
                 "jailbreak_success": judge_output["jailbreak_success"],
                 "confidence": judge_output["confidence"],
                 "severity": judge_output["severity"],
+                "harm_detected": judge_output.get("harm_detected", "none"),
                 "reasoning": judge_output["reasoning"],
+                "judge_output": Json(judge_output),
                 "attacker_model_requested": attacker_model_requested,
                 "attacker_model_used": attacker_model_used,
                 "is_fallback_triggered": is_fallback_triggered,

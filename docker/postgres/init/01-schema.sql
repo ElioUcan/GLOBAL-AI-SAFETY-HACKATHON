@@ -37,7 +37,7 @@ CREATE TABLE IF NOT EXISTS results (
     -- Target response
     target_model      TEXT NOT NULL,
     target_provider   TEXT NOT NULL DEFAULT 'nvidia_nim',
-    response          JSONB,
+    response          TEXT,
 
     -- Judge verdict
     score             INTEGER NOT NULL DEFAULT 0,
@@ -46,7 +46,7 @@ CREATE TABLE IF NOT EXISTS results (
     severity          TEXT DEFAULT 'none'
                           CHECK (severity IN ('none','low','medium','high','critical')),
     harm_detected     TEXT DEFAULT 'none',
-    judge_reasoning   JSONB,
+    judge_reasoning   TEXT,
     judge_output      JSONB
 );
 

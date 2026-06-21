@@ -49,12 +49,18 @@ from attacker.techniques import (
     is_valid,
     technique_for_iteration,
 )
-from calibration.attest import (
-    print_selection_report,
-    run_dry_run_calibration,
-    run_live_attestation,
-    run_model_selection_query,
-)
+try:
+    from calibration.attest import (
+        print_selection_report,
+        run_dry_run_calibration,
+        run_live_attestation,
+        run_model_selection_query,
+    )
+except ModuleNotFoundError:
+    print_selection_report = None
+    run_dry_run_calibration = None
+    run_live_attestation = None
+    run_model_selection_query = None
 
 # ── Pipeline constants (from AGENTS.md) ────────────────────────────────────
 JUDGE_MODEL = "nvidia_nim/meta/llama-3.1-70b-instruct"
@@ -240,6 +246,9 @@ def run_pair_attack(
 
 # ── CLI subcommands ────────────────────────────────────────────────────────
 def cmd_plan(args: argparse.Namespace) -> int:
+    if run_dry_run_calibration is None:
+        print("Calibration module is missing: calibration.attest", file=sys.stderr)
+        return 2
     per_model = args.iterations or 10
     plans = run_dry_run_calibration(per_model)
     print(f"[plan] {len(CALIBRATION_CANDIDATES)} models × {per_model} iterations = {len(plans)} total")
@@ -255,6 +264,9 @@ def cmd_plan(args: argparse.Namespace) -> int:
 
 
 def cmd_calibrate(args: argparse.Namespace) -> int:
+    if run_live_attestation is None:
+        print("Calibration module is missing: calibration.attest", file=sys.stderr)
+        return 2
     if args.dry_run or not args.live:
         return cmd_plan(args)
 
@@ -265,6 +277,9 @@ def cmd_calibrate(args: argparse.Namespace) -> int:
 
 
 def cmd_select_model(_args: argparse.Namespace) -> int:
+    if run_model_selection_query is None or print_selection_report is None:
+        print("Calibration module is missing: calibration.attest", file=sys.stderr)
+        return 2
     rows = run_model_selection_query()
     print_selection_report(rows)
     return 0
