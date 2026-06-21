@@ -48,6 +48,8 @@ services:
       N8N_RUNNERS_ENABLED: "true"
       # Credentials available to nodes (HTTP Request + Postgres nodes read these).
       # All target + attacker + judge LLMs are served by NVIDIA NIM.
+      N8N_BLOCK_ENV_ACCESS_IN_NODE: "false"
+      
       POSTGRES_HOST: postgres
       POSTGRES_PORT: "5432"
       POSTGRES_USER: ${POSTGRES_USER:-admin}
