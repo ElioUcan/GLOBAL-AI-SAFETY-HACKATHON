@@ -1,0 +1,100 @@
+# Stable model aliases for the Yucatan Slang Jailbreak Benchmark.
+# Consumers (CLI, n8n) reference aliases — never raw provider slugs in code.
+#
+# gateway_model: name registered in config/litellm_config.yaml (model_name)
+# or-* variants: OpenRouter routes (selected via --provider-mode openrouter)
+
+aliases:
+  attacker-base:
+    pipeline_role: attacker
+    gateway_model: attacker-base
+    gateway_model_openrouter: or-attacker-base
+    temperature: 0.9
+    max_tokens: 512
+    timeout: 120
+    retries: 2
+    fallback_allowed: true
+    description: "Default attacker for standard techniques"
+
+  attacker-validation:
+    pipeline_role: attacker
+    gateway_model: attacker-validation
+    gateway_model_openrouter: or-attacker-validation
+    temperature: 0.9
+    max_tokens: 512
+    timeout: 180
+    retries: 2
+    fallback_allowed: true
+    description: "Validation attacker for complex techniques (405B)"
+
+  attacker-fallback:
+    pipeline_role: attacker
+    gateway_model: attacker-fallback
+    gateway_model_openrouter: or-attacker-fallback
+    temperature: 0.9
+    max_tokens: 512
+    timeout: 120
+    retries: 1
+    fallback_allowed: false
+    description: "Fallback attacker when primary self-refuses"
+
+  target-default:
+    pipeline_role: target
+    gateway_model: target-default
+    gateway_model_openrouter: or-target-default
+    temperature: 0.7
+    max_tokens: 512
+    timeout: 120
+    retries: 0
+    fallback_allowed: false
+    description: "Default benchmark target (Llama 3.1 8B)"
+
+  judge-primary:
+    pipeline_role: judge
+    gateway_model: judge-primary
+    gateway_model_openrouter: or-judge-primary
+    temperature: 0.0
+    max_tokens: 512
+    timeout: 120
+    retries: 1
+    fallback_allowed: true
+    description: "Primary judge (70B, temp 0)"
+
+  judge-fallback:
+    pipeline_role: judge
+    gateway_model: judge-fallback
+    gateway_model_openrouter: or-judge-fallback
+    temperature: 0.0
+    max_tokens: 512
+    timeout: 120
+    retries: 0
+    fallback_allowed: false
+    description: "Judge fallback when primary fails"
+
+  sis-evaluator:
+    pipeline_role: sis
+    gateway_model: sis-evaluator
+    gateway_model_openrouter: or-sis-evaluator
+    temperature: 0.0
+    max_tokens: 256
+    timeout: 60
+    retries: 1
+    fallback_allowed: false
+    description: "Slang Integration Score evaluator"
+
+# Registry keys → alias mapping (attacker model selection)
+registry_mapping:
+  "70b": attacker-base
+  "405b": attacker-validation
+  nemotron: attacker-fallback
+
+# Target slugs (legacy CLI --target) → alias
+target_aliases:
+  "nvidia_nim/meta/llama-3.1-8b-instruct": target-default
+  "meta/llama-3.1-8b-instruct": target-default
+  target-default: target-default
+
+# Regex pre-filter behaviour (overridable via REGEX_DECIDES_RESULT env)
+regex:
+  decides_result: false
+  signal_to_judge: true

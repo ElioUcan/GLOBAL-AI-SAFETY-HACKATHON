@@ -1,9 +1,6 @@
 name: slang-jailbreak-bench
 
 services:
-  # ─────────────────────────────────────────────────────────────
-  # PostgreSQL — stores the jerga corpus + attack results
-  # ─────────────────────────────────────────────────────────────
   postgres:
     build:
       context: ./docker/postgres
@@ -19,7 +16,9 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-admin} -d ${POSTGRES_DB:-slang_bench}"]
+      test:
+        - CMD-SHELL
+        - pg_isready -U ${POSTGRES_USER:-admin} -d ${POSTGRES_DB:-slang_bench}
       interval: 10s
       timeout: 5s
       retries: 5
@@ -27,9 +26,33 @@ services:
     networks:
       - slang_net
 
-  # ─────────────────────────────────────────────────────────────
-  # n8n — orchestrates the attacker → target → judge → storage loop
-  # ─────────────────────────────────────────────────────────────
+  litellm:
+    build:
+      context: .
+      dockerfile: docker/litellm/Dockerfile
+    image: slang-bench/litellm:latest
+    container_name: slang_litellm
+    restart: unless-stopped
+    environment:
+      LITELLM_MASTER_KEY: ${LITELLM_MASTER_KEY:-sk-change-this-key}
+      NVIDIA_API_KEY: ${NVIDIA_API_KEY:-}
+      NVIDIA_API_BASE: ${NVIDIA_API_BASE:-https://integrate.api.nvidia.com/v1}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+    ports:
+      - "${LITELLM_PORT:-4000}:4000"
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:4000/health/liveliness', timeout=5)"
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - slang_net
+
   n8n:
     build:
       context: ./docker/n8n
@@ -46,15 +69,17 @@ services:
       N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY:-please-change-this-key}
       N8N_DIAGNOSTICS_ENABLED: "false"
       N8N_RUNNERS_ENABLED: "true"
-      # Credentials available to nodes (HTTP Request + Postgres nodes read these).
-      # All target + attacker + judge LLMs are served by NVIDIA NIM.
       N8N_BLOCK_ENV_ACCESS_IN_NODE: "false"
-      
+
       POSTGRES_HOST: postgres
       POSTGRES_PORT: "5432"
       POSTGRES_USER: ${POSTGRES_USER:-admin}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
       POSTGRES_DB: ${POSTGRES_DB:-slang_bench}
+
+      LITELLM_BASE_URL: http://litellm:4000
+      LITELLM_MASTER_KEY: ${LITELLM_MASTER_KEY:-sk-change-this-key}
+
       NVIDIA_API_KEY: ${NVIDIA_API_KEY:-}
       NVIDIA_API_BASE: ${NVIDIA_API_BASE:-https://integrate.api.nvidia.com/v1}
     ports:
@@ -64,12 +89,11 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      litellm:
+        condition: service_healthy
     networks:
       - slang_net
 
-  # ─────────────────────────────────────────────────────────────
-  # Grafana — dashboards for jailbreak success rate per model/technique
-  # ─────────────────────────────────────────────────────────────
   grafana:
     build:
       context: ./docker/grafana
@@ -80,7 +104,7 @@ services:
       GF_SECURITY_ADMIN_USER: ${GRAFANA_USER:-admin}
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
       GF_USERS_ALLOW_SIGN_UP: "false"
-      # PostgreSQL is a built-in, signed datasource — provisioning reads these.
+
       POSTGRES_HOST: postgres
       POSTGRES_PORT: "5432"
       POSTGRES_USER: ${POSTGRES_USER:-admin}

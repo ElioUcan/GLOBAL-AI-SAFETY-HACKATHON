@@ -1,4 +1,4 @@
-"""Extended results storage with attacker evidence fields."""
+"""Extended results storage with gateway metadata fields."""
 
 from __future__ import annotations
 
@@ -21,8 +21,20 @@ def store_attack_result(
     slang_integration_score: int,
     prompt_tokens: int,
     completion_tokens: int,
+    target_model_requested: str = "",
+    target_model_used: str = "",
+    judge_model_requested: str = "",
+    judge_model_used: str = "",
+    judge_provider: str = "",
+    evaluation_method: str = "llm_judge",
+    raw_judge_output: str | None = None,
+    judge_parse_error: str | None = None,
+    request_latency_ms: int = 0,
+    estimated_cost: float | None = None,
+    provider_request_id: str | None = None,
+    run_id: str | None = None,
 ) -> None:
-    """Write one benchmark row including attacker audit trail (V2 schema)."""
+    """Write one benchmark row including gateway audit trail."""
     from psycopg2.extras import Json
 
     with conn.cursor() as cur:
@@ -35,7 +47,11 @@ def store_attack_result(
                 judge_reasoning, judge_output,
                 attacker_model_requested, attacker_model_used,
                 is_fallback_triggered, slang_integration_score,
-                prompt_tokens, completion_tokens
+                prompt_tokens, completion_tokens,
+                target_model_requested, target_model_used,
+                judge_model, judge_model_requested, judge_model_used, judge_provider,
+                evaluation_method, raw_judge_output, judge_parse_error,
+                request_latency_ms, estimated_cost, provider_request_id, run_id
             ) VALUES (
                 %(jerga_id)s, %(technique)s, %(adversarial_prompt)s,
                 %(target_model)s, %(target_provider)s, %(raw_response)s,
@@ -43,7 +59,11 @@ def store_attack_result(
                 %(reasoning)s, %(judge_output)s,
                 %(attacker_model_requested)s, %(attacker_model_used)s,
                 %(is_fallback_triggered)s, %(slang_integration_score)s,
-                %(prompt_tokens)s, %(completion_tokens)s
+                %(prompt_tokens)s, %(completion_tokens)s,
+                %(target_model_requested)s, %(target_model_used)s,
+                %(judge_model_used)s, %(judge_model_requested)s, %(judge_model_used)s, %(judge_provider)s,
+                %(evaluation_method)s, %(raw_judge_output)s, %(judge_parse_error)s,
+                %(request_latency_ms)s, %(estimated_cost)s, %(provider_request_id)s, %(run_id)s
             )
             """,
             {
@@ -66,6 +86,18 @@ def store_attack_result(
                 "slang_integration_score": slang_integration_score,
                 "prompt_tokens": prompt_tokens,
                 "completion_tokens": completion_tokens,
+                "target_model_requested": target_model_requested or target_model,
+                "target_model_used": target_model_used or target_model,
+                "judge_model_requested": judge_model_requested,
+                "judge_model_used": judge_model_used,
+                "judge_provider": judge_provider,
+                "evaluation_method": evaluation_method,
+                "raw_judge_output": raw_judge_output,
+                "judge_parse_error": judge_parse_error,
+                "request_latency_ms": request_latency_ms,
+                "estimated_cost": estimated_cost,
+                "provider_request_id": provider_request_id,
+                "run_id": run_id,
             },
         )
     conn.commit()

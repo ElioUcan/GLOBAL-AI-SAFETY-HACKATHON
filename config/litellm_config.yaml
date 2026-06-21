@@ -1,0 +1,89 @@
+# LiteLLM Proxy — central gateway for NVIDIA NIM and OpenRouter routes.
+# Credentials stay in the proxy container; consumers use LITELLM_MASTER_KEY only.
+
+model_list:
+  # ── NVIDIA NIM (default provider) ─────────────────────────────────────
+  - model_name: attacker-base
+    litellm_params:
+      model: nvidia_nim/meta/llama-3.1-70b-instruct
+      api_key: os.environ/NVIDIA_API_KEY
+      api_base: os.environ/NVIDIA_API_BASE
+
+  - model_name: attacker-validation
+    litellm_params:
+      model: nvidia_nim/meta/llama-3.1-405b-instruct
+      api_key: os.environ/NVIDIA_API_KEY
+      api_base: os.environ/NVIDIA_API_BASE
+
+  - model_name: attacker-fallback
+    litellm_params:
+      model: nvidia_nim/nvidia/nemotron-4-340b-instruct
+      api_key: os.environ/NVIDIA_API_KEY
+      api_base: os.environ/NVIDIA_API_BASE
+
+  - model_name: target-default
+    litellm_params:
+      model: nvidia_nim/meta/llama-3.1-8b-instruct
+      api_key: os.environ/NVIDIA_API_KEY
+      api_base: os.environ/NVIDIA_API_BASE
+
+  - model_name: judge-primary
+    litellm_params:
+      model: nvidia_nim/meta/llama-3.1-70b-instruct
+      api_key: os.environ/NVIDIA_API_KEY
+      api_base: os.environ/NVIDIA_API_BASE
+
+  - model_name: judge-fallback
+    litellm_params:
+      model: nvidia_nim/meta/llama-3.1-405b-instruct
+      api_key: os.environ/NVIDIA_API_KEY
+      api_base: os.environ/NVIDIA_API_BASE
+
+  - model_name: sis-evaluator
+    litellm_params:
+      model: nvidia_nim/meta/llama-3.1-70b-instruct
+      api_key: os.environ/NVIDIA_API_KEY
+      api_base: os.environ/NVIDIA_API_BASE
+
+  # ── OpenRouter (or-* aliases for --provider-mode openrouter) ──────────
+  - model_name: or-attacker-base
+    litellm_params:
+      model: openrouter/meta-llama/llama-3.1-70b-instruct
+      api_key: os.environ/OPENROUTER_API_KEY
+
+  - model_name: or-attacker-validation
+    litellm_params:
+      model: openrouter/meta-llama/llama-3.1-405b-instruct
+      api_key: os.environ/OPENROUTER_API_KEY
+
+  - model_name: or-attacker-fallback
+    litellm_params:
+      model: openrouter/nvidia/nemotron-4-340b-instruct
+      api_key: os.environ/OPENROUTER_API_KEY
+
+  - model_name: or-target-default
+    litellm_params:
+      model: openrouter/meta-llama/llama-3.1-8b-instruct
+      api_key: os.environ/OPENROUTER_API_KEY
+
+  - model_name: or-judge-primary
+    litellm_params:
+      model: openrouter/meta-llama/llama-3.1-70b-instruct
+      api_key: os.environ/OPENROUTER_API_KEY
+
+  - model_name: or-judge-fallback
+    litellm_params:
+      model: openrouter/meta-llama/llama-3.1-405b-instruct
+      api_key: os.environ/OPENROUTER_API_KEY
+
+  - model_name: or-sis-evaluator
+    litellm_params:
+      model: openrouter/meta-llama/llama-3.1-70b-instruct
+      api_key: os.environ/OPENROUTER_API_KEY
+
+general_settings:
+  master_key: os.environ/LITELLM_MASTER_KEY
+
+litellm_settings:
+  drop_params: true
+  set_verbose: false

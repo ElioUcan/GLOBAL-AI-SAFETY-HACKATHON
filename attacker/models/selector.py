@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 
+from attacker.gateway.config import get_alias
 from attacker.models.registry import (
     DEFAULT_BASE_MODEL,
     DEFAULT_FALLBACK_MODEL,
@@ -11,16 +12,32 @@ from attacker.models.registry import (
     AttackerRole,
     NimModelSpec,
     models_by_role,
+    resolve_model,
 )
 from attacker.techniques import is_complex
 
 
-def model_from_env(key: str, default: NimModelSpec) -> NimModelSpec:
-    """Resolve a LiteLLM id from env, falling back to registry default."""
-    from attacker.models.registry import resolve_model
+def _alias_spec(alias: str) -> NimModelSpec:
+    get_alias(alias)  # validate exists
+    resolved = resolve_model(alias)
+    if resolved:
+        return resolved
+    return NimModelSpec(
+        slug=alias,
+        alias=alias,
+        litellm_id=alias,
+        role=AttackerRole.BASE,
+        rejection_rate="unknown",
+        sis_expectation="unknown",
+        cost_tier="unknown",
+        ideal_pipeline_role="alias override",
+    )
 
-    litellm_id = os.getenv(key, default.litellm_id)
-    return resolve_model(litellm_id) or default
+
+def model_from_env(key: str, default: NimModelSpec) -> NimModelSpec:
+    """Resolve an alias from env, falling back to registry default."""
+    alias = os.getenv(key, default.alias)
+    return resolve_model(alias) or _alias_spec(alias)
 
 
 def select_requested_model(
@@ -28,47 +45,29 @@ def select_requested_model(
     *,
     force_model: str | None = None,
 ) -> NimModelSpec:
-    """Pick the model that *should* run for this iteration.
-
-    Selection logic (evidence-first, not size-first):
-    - Explicit ``force_model`` wins (calibration / CLI override).
-    - Complex techniques prefer the validation (405B) model.
-    - Everything else uses the calibrated base (70B default).
-    """
+    """Pick the model alias that *should* run for this iteration."""
     if force_model:
-        from attacker.models.registry import resolve_model
-
         resolved = resolve_model(force_model)
         if resolved:
             return resolved
-        # Allow raw LiteLLM slug not in registry (forward compat)
-        return NimModelSpec(
-            slug=force_model.split("/", 1)[-1],
-            litellm_id=force_model,
-            role=AttackerRole.BASE,
-            rejection_rate="unknown",
-            sis_expectation="unknown",
-            cost_tier="unknown",
-            ideal_pipeline_role="CLI override",
-        )
+        return _alias_spec(force_model)
 
     if is_complex(technique):
-        return model_from_env("ATTACKER_VALIDATION_MODEL", DEFAULT_VALIDATION_MODEL)
+        return model_from_env("ATTACKER_VALIDATION_ALIAS", DEFAULT_VALIDATION_MODEL)
 
-    return model_from_env("ATTACKER_DEFAULT_MODEL", DEFAULT_BASE_MODEL)
+    return model_from_env("ATTACKER_DEFAULT_ALIAS", DEFAULT_BASE_MODEL)
 
 
 def fallback_chain(requested: NimModelSpec) -> list[NimModelSpec]:
-    """Ordered list of models to try when the primary self-refuses."""
+    """Ordered list of model aliases to try when the primary self-refuses."""
     chain: list[NimModelSpec] = [requested]
-    fallback = model_from_env("ATTACKER_FALLBACK_MODEL", DEFAULT_FALLBACK_MODEL)
+    fallback = model_from_env("ATTACKER_FALLBACK_ALIAS", DEFAULT_FALLBACK_MODEL)
 
-    if fallback.litellm_id != requested.litellm_id:
+    if fallback.alias != requested.alias:
         chain.append(fallback)
 
-    # Never fall back to validation model from base — different purpose
     for base in models_by_role(AttackerRole.BASE):
-        if base.litellm_id not in {m.litellm_id for m in chain}:
+        if base.alias not in {m.alias for m in chain}:
             if requested.role == AttackerRole.VALIDATION:
                 chain.append(base)
             break

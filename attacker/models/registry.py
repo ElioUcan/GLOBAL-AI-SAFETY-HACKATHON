@@ -5,6 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import Enum
 
+from attacker.gateway.config import registry_key_to_alias
+
 
 class AttackerRole(str, Enum):
     BASE = "base"
@@ -17,6 +19,7 @@ class NimModelSpec:
     """One candidate attacker model with its expected evidence profile."""
 
     slug: str
+    alias: str
     litellm_id: str
     role: AttackerRole
     rejection_rate: str
@@ -31,40 +34,55 @@ class NimModelSpec:
         return self.slug.split("/")[-1]
 
 
-def _litellm(slug: str) -> str:
-    return f"nvidia_nim/{slug}"
+def _spec(
+    key: str,
+    slug: str,
+    role: AttackerRole,
+    rejection_rate: str,
+    sis_expectation: str,
+    cost_tier: str,
+    ideal_pipeline_role: str,
+) -> NimModelSpec:
+    alias = registry_key_to_alias(key)
+    return NimModelSpec(
+        slug=slug,
+        alias=alias,
+        litellm_id=alias,
+        role=role,
+        rejection_rate=rejection_rate,
+        sis_expectation=sis_expectation,
+        cost_tier=cost_tier,
+        ideal_pipeline_role=ideal_pipeline_role,
+    )
 
 
-# Matriz de selección basada en evidencia (doc V2)
 ATTACKER_MODEL_REGISTRY: dict[str, NimModelSpec] = {
-    "405b": NimModelSpec(
-        slug="meta/llama-3.1-405b-instruct",
-        litellm_id=_litellm("meta/llama-3.1-405b-instruct"),
-        role=AttackerRole.VALIDATION,
-        rejection_rate="monitor_high",
-        sis_expectation="high",
-        cost_tier="high",
-        ideal_pipeline_role=(
-            "Atacante de validación avanzada / generador de técnicas complejas"
-        ),
+    "405b": _spec(
+        "405b",
+        "meta/llama-3.1-405b-instruct",
+        AttackerRole.VALIDATION,
+        "monitor_high",
+        "high",
+        "high",
+        "Atacante de validación avanzada / generador de técnicas complejas",
     ),
-    "70b": NimModelSpec(
-        slug="meta/llama-3.1-70b-instruct",
-        litellm_id=_litellm("meta/llama-3.1-70b-instruct"),
-        role=AttackerRole.BASE,
-        rejection_rate="low_medium",
-        sis_expectation="medium_high",
-        cost_tier="moderate",
-        ideal_pipeline_role="Atacante base (default) si calibración confirma balance costo/SIS",
+    "70b": _spec(
+        "70b",
+        "meta/llama-3.1-70b-instruct",
+        AttackerRole.BASE,
+        "low_medium",
+        "medium_high",
+        "moderate",
+        "Atacante base (default) si calibración confirma balance costo/SIS",
     ),
-    "nemotron": NimModelSpec(
-        slug="nvidia/nemotron-4-340b-instruct",
-        litellm_id=_litellm("nvidia/nemotron-4-340b-instruct"),
-        role=AttackerRole.FALLBACK,
-        rejection_rate="very_low",
-        sis_expectation="monitor_formal",
-        cost_tier="high",
-        ideal_pipeline_role="Fallback de estructura si Llama bloquea sistemáticamente",
+    "nemotron": _spec(
+        "nemotron",
+        "nvidia/nemotron-4-340b-instruct",
+        AttackerRole.FALLBACK,
+        "very_low",
+        "monitor_formal",
+        "high",
+        "Fallback de estructura si Llama bloquea sistemáticamente",
     ),
 }
 
@@ -74,7 +92,6 @@ DEFAULT_VALIDATION_MODEL = ATTACKER_MODEL_REGISTRY["405b"]
 
 CALIBRATION_CANDIDATES: list[NimModelSpec] = list(ATTACKER_MODEL_REGISTRY.values())
 
-# Patrones que indican self-refusal del modelo atacante (no del target)
 SELF_REFUSAL_PATTERNS: tuple[str, ...] = (
     "i can't help",
     "i cannot help",
@@ -94,10 +111,12 @@ SELF_REFUSAL_PATTERNS: tuple[str, ...] = (
 )
 
 
-def resolve_model(litellm_id: str) -> NimModelSpec | None:
-    """Look up a registry entry by LiteLLM model id."""
+def resolve_model(identifier: str) -> NimModelSpec | None:
+    """Look up a registry entry by key, alias, or legacy litellm id."""
+    if identifier in ATTACKER_MODEL_REGISTRY:
+        return ATTACKER_MODEL_REGISTRY[identifier]
     for spec in ATTACKER_MODEL_REGISTRY.values():
-        if spec.litellm_id == litellm_id:
+        if spec.alias == identifier or spec.litellm_id == identifier or spec.slug == identifier:
             return spec
     return None
 
