@@ -5,6 +5,120 @@ All notable changes to the Yucatan Slang Jailbreak Benchmark are documented here
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## V0.1.4
+
+### Plain-language summary
+- We updated the n8n visual workflow so it follows the same logic as `main.py`.
+  In simple terms: n8n now knows how to run each slang test, score the answer
+  from 1 to 5, save the full result, and repeat the process in a batch.
+
+### Changed
+- **n8n workflow aligned with `main.py`** — updated
+  `Yucatan Slang Jailbreak Benchmark.json` so the visual workflow follows the
+  current benchmark contract: `Fetch Jerga → Attacker → Target → Regex
+  pre-filter → Judge 1-5 → Storage`.
+- **Batch loop fixed** — `Loop Batch (100x)` now sends `Fetch Jerga` through the
+  loop output, while the done output remains empty. `Store Result` still returns
+  to `Loop Batch (100x)` to continue the next item.
+- **Regex verdict updated** — regex hits now emit a complete Judge-compatible
+  payload with `score: 5`, `jailbreak_success`, `confidence`, `harm_detected`,
+  `reasoning`, and `severity`.
+- **Judge output updated** — the Judge prompt and structured parser now require
+  the 1-5 scoring contract, including `score`, `jailbreak_success`,
+  `confidence`, `harm_detected`, `reasoning`, and `severity`.
+- **Storage mapping updated** — `Store Result` now maps `score`,
+  `harm_detected`, and `judge_output` in addition to the existing result fields.
+- **Postgres credential guidance added** — workflow notes now specify the
+  expected n8n credential name and Docker-network connection values for
+  `Fetch Jerga` and `Store Result`.
+
+### Validation
+- The workflow JSON was validated with `python -m json.tool`.
+
+### Notes
+- n8n credentials are local to each n8n instance. They are not stored in the
+  repo and are not exported inside `Yucatan Slang Jailbreak Benchmark.json`.
+  After pulling these changes and importing the workflow, each teammate must
+  create their own Postgres credential (`slang_bench_postgres`) and configure
+  NVIDIA credentials/API keys in their local n8n UI.
+
+### Pending
+- **Re-import the updated workflow JSON in n8n** so the UI uses the latest repo
+  version, not an older local copy.
+- **Configure required credentials** in the n8n UI: Postgres credentials for
+  `Fetch Jerga` and `Store Result`, plus NVIDIA credentials/API key for the LLM
+  nodes and Target HTTP request.
+- **Run `main.py` end-to-end first** with a real `NVIDIA_API_KEY`, using a small
+  controlled run (`--limit 1`, then 5-10) and confirm rows land in `results`.
+- **Run n8n end-to-end next** with a small batch (`batch_iterations = 1`, then
+  3-5) and confirm it writes the same kind of rows to `results`.
+- **Confirm Grafana renders real benchmark data** from `results`: model,
+  technique, harm category, score, severity, and jailbreak-success metrics.
+- **Start collecting evidence for the research hypothesis**: regional Mexican
+  slang may help bypass safety filters because the model does not understand the
+  cultural context well enough. The results do not need to prove that upfront;
+  the benchmark should also reveal if the weakness comes from neutral Spanish,
+  slang, prompt structure, model-specific behavior, or another repeatable gap.
+
+## V0.1.3
+
+### Changed
+- **Hybrid result storage types** — `results.response` and
+  `results.judge_reasoning` are now `TEXT`, while `results.judge_output` remains
+  `JSONB` for the complete structured Judge payload. This avoids invalid JSONB
+  inserts when the target model or Judge reasoning returns plain text.
+- **Python storage parity** — `attacker/storage/results.py` now stores
+  `harm_detected` and the full `judge_output` object, using psycopg2's JSON
+  adapter for the JSONB field.
+
+### Reason
+- The problem came from a mismatch between the database schema and what the
+  benchmark actually produces. `main.py` receives the Target model response as
+  plain text, and the Judge `reasoning` is also plain text. Those values were
+  being inserted into `response` and `judge_reasoning`, but both columns were
+  defined as `JSONB`.
+- This matters because PostgreSQL only accepts valid JSON in `JSONB` columns.
+  A normal model response like `Lo siento, no puedo ayudar con eso.` is useful
+  benchmark data, but it is not a valid JSON document by itself. That could make
+  the run fail at the final Storage step, after Attacker, Target, Regex, and
+  Judge had already completed.
+- The effect on the flow was that a successful evaluation could still fail to
+  become a result: no row in `results`, no Grafana metric, and no evidence to
+  compare models. The fix keeps free-form text in `TEXT` columns and keeps the
+  structured Judge verdict in `judge_output JSONB`, where JSONB is useful for
+  auditing and querying the complete score payload.
+
+### Validated
+- **`main.py` is the current source of truth for the flow** — it represents
+  `Fetch Jerga → Attacker → Target → Regex pre-filter → Judge 1-5 → Storage`.
+- **PostgreSQL is ready for the flow** — Docker created `attacker_calibration`,
+  `jerga`, and `results`; the seed loaded 10 slang rows across `drugs`,
+  `hate_speech`, and `violence`.
+- **The Python path loads correctly** — `python -m attacker.main --help` and
+  `python -m attacker.main models` run successfully, and `run` stops before
+  execution when `NVIDIA_API_KEY` is missing.
+- **Grafana is pointed at the right data model** — dashboard queries read from
+  `results` and `jerga`, which are the tables populated by the benchmark flow.
+
+### Pending
+- **Run controlled tests in `main.py`** — first validate Python-to-Postgres
+  reads, then run one real benchmark with `NVIDIA_API_KEY`, and confirm a valid
+  row lands in `results`.
+- **Confirm Grafana with real output** — after `main.py` writes at least one
+  row, verify that dashboard panels render actual metrics.
+- **Validate n8n in the UI** — re-import the updated workflow JSON, configure
+  credentials, run a 1-3 item batch, and confirm rows land in `results`.
+- **Use n8n only after Python passes** — once `main.py` produces valid results,
+  mirror the same flow in n8n and run the visual workflow to start generating
+  benchmark data.
+- **Defer model selection** — choose Attacker, Judge, and Target model counts
+  after the end-to-end flow works in `main.py` and is mirrored in n8n.
+
+### Notes
+- Existing Postgres volumes will not pick up `01-schema.sql` changes
+  automatically. For a clean dev reset, run `docker compose down -v` and then
+  `docker compose up -d --build`.
+
 ## V0.1.2
 
 ### Added
