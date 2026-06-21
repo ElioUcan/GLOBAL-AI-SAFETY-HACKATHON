@@ -57,6 +57,8 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-slang_bench}
       NVIDIA_API_KEY: ${NVIDIA_API_KEY:-}
       NVIDIA_API_BASE: ${NVIDIA_API_BASE:-https://integrate.api.nvidia.com/v1}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      OPENROUTER_API_BASE: ${OPENROUTER_API_BASE:-https://openrouter.ai/api/v1}
     ports:
       - "${N8N_PORT:-5678}:5678"
     volumes:

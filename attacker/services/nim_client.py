@@ -1,4 +1,11 @@
-"""LiteLLM client for NVIDIA NIM with retry/backoff on transient errors."""
+"""LiteLLM client with retry/backoff on transient errors.
+
+Supports a dual-API strategy: NVIDIA NIM (attacker, judge, SIS, and the
+open-weight targets) plus OpenRouter (highly-aligned "hard" targets such as
+Claude and GPT-4o). Credentials are resolved per model-slug prefix so a single
+client can talk to both providers without forcing one provider's base URL onto
+the other.
+"""
 
 from __future__ import annotations
 
@@ -56,18 +63,49 @@ def _sleep_for(exc: BaseException, attempt: int) -> float:
     return backoff + random.uniform(0, 1)
 
 
-def completion(model: str, messages: list[dict[str, str]], **kwargs) -> Any:
-    """Thin LiteLLM wrapper that injects NVIDIA NIM credentials and retries.
+def _provider_credentials(model: str) -> dict[str, Any]:
+    """Resolve api_key / api_base for a model slug (dual-API routing).
 
-    Transient failures (HTTP 429 / 5xx / connection / timeout) are retried up to
-    ``NIM_MAX_RETRIES`` times with exponential backoff + jitter, honoring a
-    ``Retry-After`` header when the server sends one.
+    - ``nvidia_nim/*``  → NVIDIA NIM key + base (attacker, judge, SIS, NIM targets)
+    - ``openrouter/*``  → OpenRouter key (+ optional base override); LiteLLM
+      defaults the base to ``https://openrouter.ai/api/v1``.
+    - anything else     → no overrides; let LiteLLM resolve from its own env vars.
+
+    Forcing NVIDIA's base URL onto an OpenRouter slug (the previous behavior) made
+    "hard" targets like Claude/GPT-4o unreachable, so routing is now prefix-based.
+    """
+    if model.startswith("openrouter/"):
+        creds: dict[str, Any] = {}
+        key = os.getenv("OPENROUTER_API_KEY")
+        if key:
+            creds["api_key"] = key
+        base = os.getenv("OPENROUTER_API_BASE")
+        if base:
+            creds["api_base"] = base
+        return creds
+
+    if model.startswith("nvidia_nim/"):
+        return {
+            "api_key": os.getenv("NVIDIA_API_KEY"),
+            "api_base": os.getenv("NVIDIA_API_BASE", "https://integrate.api.nvidia.com/v1"),
+        }
+
+    return {}
+
+
+def completion(model: str, messages: list[dict[str, str]], **kwargs) -> Any:
+    """Thin LiteLLM wrapper that injects per-provider credentials and retries.
+
+    Credentials are routed by model-slug prefix (see ``_provider_credentials``)
+    so NVIDIA NIM and OpenRouter targets share one code path. Transient failures
+    (HTTP 429 / 5xx / connection / timeout) are retried up to ``NIM_MAX_RETRIES``
+    times with exponential backoff + jitter, honoring a ``Retry-After`` header
+    when the server sends one.
     """
     import litellm
 
     retryable = _retryable_exceptions()
-    api_key = os.getenv("NVIDIA_API_KEY")
-    api_base = os.getenv("NVIDIA_API_BASE", "https://integrate.api.nvidia.com/v1")
+    creds = _provider_credentials(model)
 
     attempt = 0
     while True:
@@ -75,8 +113,7 @@ def completion(model: str, messages: list[dict[str, str]], **kwargs) -> Any:
             return litellm.completion(
                 model=model,
                 messages=messages,
-                api_key=api_key,
-                api_base=api_base,
+                **creds,
                 **kwargs,
             )
         except retryable as exc:

@@ -218,13 +218,20 @@ The point is to test the model's default safety alignment.
 
 ### Supported Targets
 
+Targets follow a **dual-API strategy** (LiteLLM routes by slug prefix): open-weight models via
+NVIDIA NIM, plus highly-aligned frontier models via OpenRouter. `openrouter/*` slugs require
+`OPENROUTER_API_KEY`; `nvidia_nim/*` slugs require `NVIDIA_API_KEY`.
 
-| Model Slug                                      | Provider   | Type          |
-| ----------------------------------------------- | ---------- | ------------- |
-| `nvidia_nim/meta/llama-3.1-8b-instruct`         | NVIDIA NIM | API (default) |
-| `nvidia_nim/mistralai/mistral-7b-instruct-v0.3` | NVIDIA NIM | API           |
-| `nvidia_nim/qwen/qwen2-7b-instruct`             | NVIDIA NIM | API           |
-| `nvidia_nim/google/gemma-2-9b-it`               | NVIDIA NIM | API           |
+
+| Model Slug                                      | Provider   | Tier   | Type          |
+| ----------------------------------------------- | ---------- | ------ | ------------- |
+| `nvidia_nim/meta/llama-3.1-8b-instruct`         | NVIDIA NIM | medium | API (default) |
+| `nvidia_nim/google/gemma-2-9b-it`               | NVIDIA NIM | medium | API           |
+| `nvidia_nim/google/gemma-2-2b-it`               | NVIDIA NIM | weak   | API           |
+| `nvidia_nim/mistralai/mistral-7b-instruct-v0.3` | NVIDIA NIM | weak   | API           |
+| `nvidia_nim/qwen/qwen2-7b-instruct`             | NVIDIA NIM | weak   | API           |
+| `openrouter/anthropic/claude-3.5-sonnet`        | OpenRouter | hard   | API           |
+| `openrouter/openai/gpt-4o`                      | OpenRouter | hard   | API           |
 
 
 ### Call Config
@@ -240,7 +247,9 @@ response = completion(
 )
 ```
 
-All LLM calls route through `attacker/services/nim_client.py` (LiteLLM → NVIDIA NIM).
+All LLM calls route through `attacker/services/nim_client.py`. `completion()` resolves
+credentials per slug prefix via `_provider_credentials` (NVIDIA NIM vs OpenRouter), so the same
+retry/backoff path serves both providers.
 
 ### Output
 
