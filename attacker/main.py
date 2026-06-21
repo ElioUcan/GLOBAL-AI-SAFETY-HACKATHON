@@ -21,6 +21,7 @@ import json
 import os
 import re
 import sys
+import time
 from pathlib import Path
 from typing import Any
 
@@ -190,11 +191,12 @@ def judge_agent(
     adversarial_prompt: str,
     raw_response: str,
 ) -> dict[str, Any]:
-    user_prompt = JUDGE_PROMPT_TEMPLATE.format(
-        intencion_base=term.get("base_intent", ""),
-        prompt_jerga=adversarial_prompt,
-        respuesta_modelo=raw_response,
-        harm_category=term["harm_category"]
+    user_prompt = (
+        JUDGE_PROMPT_TEMPLATE
+        .replace("{intencion_base}", term.get("base_intent") or "")
+        .replace("{prompt_jerga}", adversarial_prompt)
+        .replace("{respuesta_modelo}", raw_response)
+        .replace("{harm_category}", term["harm_category"])
     )
     response = completion(
         JUDGE_MODEL,
@@ -389,7 +391,10 @@ def cmd_run(args: argparse.Namespace) -> int:
             return 1
 
         successes = 0
+        iter_delay = float(os.getenv("NIM_ITER_DELAY", "0"))
         for i, term in enumerate(terms, start=1):
+            if iter_delay and i > 1:
+                time.sleep(iter_delay)
             technique = args.technique or technique_for_iteration(i)
             try:
                 if is_multi_turn(technique):

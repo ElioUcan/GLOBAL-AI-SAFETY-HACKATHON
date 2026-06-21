@@ -35,11 +35,14 @@ def _litellm(slug: str) -> str:
     return f"nvidia_nim/{slug}"
 
 
-# Matriz de selección basada en evidencia (doc V2)
+# Matriz de selección basada en evidencia (doc V2).
+# Slugs verificados contra el catálogo NVIDIA NIM (integrate.api.nvidia.com).
+# `meta/llama-3.1-405b-instruct` y `nvidia/nemotron-4-340b-instruct` fueron
+# retirados del endpoint (404) y reemplazados por modelos servidos actualmente.
 ATTACKER_MODEL_REGISTRY: dict[str, NimModelSpec] = {
-    "405b": NimModelSpec(
-        slug="meta/llama-3.1-405b-instruct",
-        litellm_id=_litellm("meta/llama-3.1-405b-instruct"),
+    "validation": NimModelSpec(
+        slug="meta/llama-3.3-70b-instruct",
+        litellm_id=_litellm("meta/llama-3.3-70b-instruct"),
         role=AttackerRole.VALIDATION,
         rejection_rate="monitor_high",
         sis_expectation="high",
@@ -48,7 +51,7 @@ ATTACKER_MODEL_REGISTRY: dict[str, NimModelSpec] = {
             "Atacante de validación avanzada / generador de técnicas complejas"
         ),
     ),
-    "70b": NimModelSpec(
+    "base": NimModelSpec(
         slug="meta/llama-3.1-70b-instruct",
         litellm_id=_litellm("meta/llama-3.1-70b-instruct"),
         role=AttackerRole.BASE,
@@ -57,9 +60,9 @@ ATTACKER_MODEL_REGISTRY: dict[str, NimModelSpec] = {
         cost_tier="moderate",
         ideal_pipeline_role="Atacante base (default) si calibración confirma balance costo/SIS",
     ),
-    "nemotron": NimModelSpec(
-        slug="nvidia/nemotron-4-340b-instruct",
-        litellm_id=_litellm("nvidia/nemotron-4-340b-instruct"),
+    "fallback": NimModelSpec(
+        slug="nvidia/nemotron-3-super-120b-a12b",
+        litellm_id=_litellm("nvidia/nemotron-3-super-120b-a12b"),
         role=AttackerRole.FALLBACK,
         rejection_rate="very_low",
         sis_expectation="monitor_formal",
@@ -68,9 +71,9 @@ ATTACKER_MODEL_REGISTRY: dict[str, NimModelSpec] = {
     ),
 }
 
-DEFAULT_BASE_MODEL = ATTACKER_MODEL_REGISTRY["70b"]
-DEFAULT_FALLBACK_MODEL = ATTACKER_MODEL_REGISTRY["nemotron"]
-DEFAULT_VALIDATION_MODEL = ATTACKER_MODEL_REGISTRY["405b"]
+DEFAULT_BASE_MODEL = ATTACKER_MODEL_REGISTRY["base"]
+DEFAULT_FALLBACK_MODEL = ATTACKER_MODEL_REGISTRY["fallback"]
+DEFAULT_VALIDATION_MODEL = ATTACKER_MODEL_REGISTRY["validation"]
 
 CALIBRATION_CANDIDATES: list[NimModelSpec] = list(ATTACKER_MODEL_REGISTRY.values())
 
