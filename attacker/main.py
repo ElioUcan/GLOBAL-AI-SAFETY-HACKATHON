@@ -30,12 +30,35 @@ _ROOT = Path(__file__).resolve().parents[1]
 if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
+_ENV_PATH = _ROOT / ".env"
+
+
+def _load_env_file(path: Path) -> None:
+    """Minimal .env loader when python-dotenv is not installed."""
+    if not path.is_file():
+        return
+    for line in path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        key = key.strip()
+        if not key or key in os.environ:
+            continue
+        value = value.strip()
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in "\"'":
+            value = value[1:-1]
+        os.environ[key] = value
+
+
 try:
     from dotenv import load_dotenv
 
-    load_dotenv(_ROOT / ".env")
+    load_dotenv(_ENV_PATH)
+    _DOTENV_AVAILABLE = True
 except ImportError:
-    pass
+    _DOTENV_AVAILABLE = False
+    _load_env_file(_ENV_PATH)
 
 from attacker.evaluators.sis import evaluate_sis
 from attacker.models.registry import ATTACKER_MODEL_REGISTRY, CALIBRATION_CANDIDATES
@@ -66,7 +89,7 @@ except ModuleNotFoundError:
 # ── Pipeline constants (from AGENTS.md) ────────────────────────────────────
 JUDGE_MODEL = "nvidia_nim/meta/llama-3.1-70b-instruct"
 JUDGE_TEMPERATURE = 0.0
-DEFAULT_TARGET_MODEL = "nvidia_nim/meta/llama-3.1-8b-instruct"
+DEFAULT_TARGET_MODEL = "nvidia_nim/openai/gpt-oss-20b"
 TARGET_TEMPERATURE = 0.7
 TARGET_MAX_TOKENS = 512
 PAIR_MAX_ITERATIONS = 5
@@ -397,8 +420,22 @@ def cmd_run(args: argparse.Namespace) -> int:
 
     provider, model_name = split_model_slug(args.target)
 
-    if not os.getenv("NVIDIA_API_KEY"):
-        print("NVIDIA_API_KEY is not set.", file=sys.stderr)
+    if not os.getenv("NVIDIA_API_KEY", "").strip():
+        if _ENV_PATH.is_file():
+            print(
+                "NVIDIA_API_KEY is not set. Add your key to .env or export it in your shell.",
+                file=sys.stderr,
+            )
+        else:
+            print(
+                "NVIDIA_API_KEY is not set. Copy .env.example to .env and add your key.",
+                file=sys.stderr,
+            )
+        if not _DOTENV_AVAILABLE:
+            print(
+                "Tip: pip install -r attacker/requirements.txt inside a virtualenv.",
+                file=sys.stderr,
+            )
         return 2
 
     conn = get_connection()
