@@ -90,7 +90,7 @@ def evaluate_sis(
 
     model = evaluator_model or os.getenv(
         "SIS_EVALUATOR_MODEL",
-        "openrouter/meta-llama/llama-3.1-70b-instruct",
+        "nvidia_nim/meta/llama-3.1-70b-instruct",
     )
 
     if completion_fn is None:

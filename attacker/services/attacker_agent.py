@@ -37,6 +37,7 @@ def generate_adversarial_prompt(
     force_model: str | None = None,
     enable_fallback: bool = True,
     dry_run: bool = False,
+    attacker_max_tokens: int | None = None,
 ) -> AttackerGenerationResult:
     """Generate an adversarial prompt using the centralized model strategy.
 
@@ -68,6 +69,9 @@ def generate_adversarial_prompt(
     attempts: list[AttackerAttempt] = []
 
     for spec in models_to_try:
+        max_tokens = (
+            attacker_max_tokens if attacker_max_tokens is not None else spec.max_tokens
+        )
         response = completion(
             spec.litellm_id,
             messages=[
@@ -75,7 +79,7 @@ def generate_adversarial_prompt(
                 {"role": "user", "content": user_prompt},
             ],
             temperature=spec.temperature,
-            max_tokens=spec.max_tokens,
+            max_tokens=max_tokens,
         )
         raw = (response.choices[0].message.content or "").strip()
         prompt_tok, completion_tok = extract_token_usage(response)

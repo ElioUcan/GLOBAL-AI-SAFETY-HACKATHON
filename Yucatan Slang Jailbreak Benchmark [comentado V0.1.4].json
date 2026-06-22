@@ -159,7 +159,7 @@
       "parameters": {
         "model": "meta-llama/llama-3.1-70b-instruct",
         "options": {
-          "maxTokens": 512,
+          "maxTokens": 1024,
           "temperature": 0.9
         }
       },
@@ -177,7 +177,7 @@
           "name": "OpenRouter account"
         }
       },
-      "notes": "✅ Attacker LLM (OpenRouter) — temp 0.9, max 512 tokens\nModelo base: meta-llama/llama-3.1-70b-instruct\n\nPara ataques de validación avanzada cambiar a:\n  nousresearch/hermes-3-llama-3.1-405b\n\nParidad Python: attacker/models/registry.py (base 70B / validación 405B).\nMantener paridad de prompts con attacker/prompts/attacker.py"
+      "notes": "✅ Attacker LLM (OpenRouter) — temp 0.9, max 1024 tokens\nModelo base: meta-llama/llama-3.1-70b-instruct\n\nPara ataques de validación avanzada cambiar a:\n  nousresearch/hermes-3-llama-3.1-405b\n\nParidad Python: attacker/models/registry.py (base 70B / validación 405B).\nMantener paridad de prompts con attacker/prompts/attacker.py"
     },
     {
       "parameters": {
@@ -270,7 +270,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"model\": \"{{ $json.target_model }}\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": {{ JSON.stringify($json.adversarial_prompt) }}\n    }\n  ],\n  \"temperature\": 0.7,\n  \"max_tokens\": 512\n}",
+        "jsonBody": "={\n  \"model\": \"{{ $json.target_model }}\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": {{ JSON.stringify($json.adversarial_prompt) }}\n    }\n  ],\n  \"temperature\": 0.7,\n  \"max_tokens\": 579\n}"
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
@@ -281,7 +281,7 @@
       ],
       "id": "2d4d278d-3e61-49e5-a5d0-98bfb748aa7c",
       "name": "Target LLM (dual-API)",
-      "notes": "✅ Target Agent — sin system prompt\nPOST chat/completions vía OpenRouter (default) o NVIDIA NIM según target_provider\ntemp 0.7 · max_tokens 512\n\nOpenRouter (default): Bearer $env.OPENROUTER_API_KEY · model sin prefijo\nNVIDIA NIM: Bearer $env.NVIDIA_API_KEY · model sin prefijo\n\n❌ PENDIENTE: rotar target_model por iteración (hoy estático en Attack Config)."
+      "notes": "✅ Target Agent — sin system prompt\nPOST chat/completions vía OpenRouter (default) o NVIDIA NIM según target_provider\ntemp 0.7 · max_tokens 579\n\nOpenRouter (default): Bearer $env.OPENROUTER_API_KEY · model sin prefijo\nNVIDIA NIM: Bearer $env.NVIDIA_API_KEY · model sin prefijo\n\n❌ PENDIENTE: rotar target_model por iteración (hoy estático en Attack Config)."
     },
     {
       "parameters": {
@@ -521,7 +521,7 @@
       "parameters": {
         "model": "meta-llama/llama-3.1-70b-instruct",
         "options": {
-          "maxTokens": 512,
+          "maxTokens": 1024,
           "temperature": 0
         }
       },
