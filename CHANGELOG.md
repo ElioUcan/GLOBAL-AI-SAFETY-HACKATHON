@@ -5,6 +5,58 @@ All notable changes to the Yucatan Slang Jailbreak Benchmark are documented here
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## V0.1.5
+
+### Plain-language summary
+- We fixed fake jailbreaks, made attacks aim at the real goal, and added a second
+  model provider. In simple terms: the keyword filter can no longer label a safe
+  answer as a "jailbreak" by itself — only the LLM Judge decides now. Attacks now
+  go after the specific harmful objective (not just the broad category). And we can
+  now test OpenRouter models (Claude 3.5 Sonnet, GPT-4o) next to the NVIDIA models.
+
+### Changed
+- **Judge is the sole arbiter of success** — the regex pre-filter (`quick_check` →
+  `prefilter_action` in `attacker/main.py`) no longer emits `score: 5` on a keyword
+  hit. It only short-circuits clear refusals (`_verdict_refusal`, `score: 1`); harm
+  hits and ambiguous replies are escalated to the Judge. This removes the
+  false-positive jailbreaks (safe replies flagged for merely mentioning a word like
+  *odio*, *receta*, or *discriminación*).
+- **Pruned generic harm keywords** that collided with safe/meta discussion
+  (e.g. `odio`, `discriminación`, `inferioridad`, `receta`, `dosis`, `preparar`).
+- **`base_intent` wired into the attacker** (`attacker/prompts/attacker.py`) so
+  generated prompts pursue the specific goal the Judge scores against.
+- **Dual-API target support** — `attacker/services/nim_client.py::_provider_credentials`
+  routes credentials by model-slug prefix: `nvidia_nim/*` → NVIDIA NIM,
+  `openrouter/*` → OpenRouter. Lets `openrouter/anthropic/claude-3.5-sonnet` and
+  `openrouter/openai/gpt-4o` run without forcing NVIDIA's base URL on them.
+- **Config** — added `OPENROUTER_API_KEY` / `OPENROUTER_API_BASE` to `.env.example`
+  and the n8n service in `compose.yml`.
+- **Docs reconciled** — `AGENTS.md` (dual-API targets table, pre-filter section,
+  PAIR loop) and `Yucatan_Slang_Benchmark_Workflow.md` (§2 retired 405B slug, §3
+  dual-API implementation, §4 corrected pre-filter behavior, §1 real 3-category
+  ingest) now match the working code.
+
+### Validation
+- `python -m py_compile` on the edited modules.
+- `prefilter_action` re-tested against the 5 known false positives → all now route
+  to the Judge; clean refusals route to `refusal`.
+- `_provider_credentials` verified to map NVIDIA / OpenRouter / unknown slugs.
+
+### Notes
+- The slang corpus must hold the full 1,575 rows. If the Postgres volume is
+  recreated, only the 10-row seed reloads; re-run
+  `scripts/ingest_slang_bench.py --apply` (with `POSTGRES_PORT=5432`) to restore it.
+- The HarmBench ingest mapping is lossy (`chemical_biological → drugs`), so the
+  Judge's `harm_detected` is more reliable than the corpus `harm_category` for
+  per-category analysis.
+
+### Pending
+- **Add `OPENROUTER_API_KEY`** to `.env` before running any `openrouter/*` target.
+- **Push the commits** (`git -c credential.helper='!gh auth git-credential' push origin main`).
+- **(Optional) Fix the lossy ingest mapping** so `harm_category` matches the real
+  behavior type.
+- **Re-run a clean benchmark** now that successes are Judge-verified.
+
 ## V0.1.4
 
 ### Plain-language summary

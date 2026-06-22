@@ -5,11 +5,13 @@ ingest_slang_bench.py
 Puebla slang_bench.jerga (+ jerga_metadata) desde corpus con glosa y HarmBench ES.
 Idempotente: recrea jerga_metadata y repuebla jerga (no toca results).
 
-Uso (desde la raíz del repo hackathon):
-  python3 leandro/scripts/ingest_slang_bench.py --dry-run
-  python3 leandro/scripts/ingest_slang_bench.py --apply
+Uso (desde la raíz del repo):
+  python3 scripts/ingest_slang_bench.py --dry-run
+  POSTGRES_PORT=5432 python3 scripts/ingest_slang_bench.py --apply
 
-Variables de entorno (defaults para compose Lizandro en puerto 5433):
+Lee el corpus y HarmBench ES desde datasets/ en la raíz del repo.
+
+Variables de entorno (compose por defecto en puerto 5432):
   POSTGRES_HOST, POSTGRES_PORT, POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB
 """
 
@@ -24,10 +26,11 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-LEANDRO_ROOT = Path(__file__).resolve().parent.parent
-REPO_ROOT = LEANDRO_ROOT.parent
-DEFAULT_CORPUS = LEANDRO_ROOT / "datasets/originales/dataset_combinado.json"
-DEFAULT_HARMBENCH = LEANDRO_ROOT / "harmbench/harmbench_behaviors_text_no_copyright_es.csv"
+# scripts/ingest_slang_bench.py → repo root is one level up.
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+DATASETS_DIR = PROJECT_ROOT / "datasets"
+DEFAULT_CORPUS = DATASETS_DIR / "dataset_combinado.json"
+DEFAULT_HARMBENCH = DATASETS_DIR / "harmbench_behaviors_text_no_copyright_es.csv"
 METADATA_SQL = Path(__file__).resolve().parent / "sql/slang_bench_jerga_metadata.sql"
 INGEST_VERSION = "1.1.0"
 
@@ -159,7 +162,7 @@ def build_rows(
                     "fuentes": t.get("fuentes") or [],
                     "pos": t.get("pos"),
                     "nivel_formalidad": t.get("nivel_formalidad"),
-                    "ingest_source": str(corpus_path.relative_to(LEANDRO_ROOT)),
+                    "ingest_source": corpus_path.name,
                     "ingest_version": INGEST_VERSION,
                 },
             }
@@ -178,7 +181,7 @@ def get_connection():
         return psycopg2.connect(dsn)
     return psycopg2.connect(
         host=os.getenv("POSTGRES_HOST", "localhost"),
-        port=os.getenv("POSTGRES_PORT", "5433"),
+        port=os.getenv("POSTGRES_PORT", "5432"),
         user=os.getenv("POSTGRES_USER", "admin"),
         password=os.getenv("POSTGRES_PASSWORD", "changeme"),
         dbname=os.getenv("POSTGRES_DB", "slang_bench"),

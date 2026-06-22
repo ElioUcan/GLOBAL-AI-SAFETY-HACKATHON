@@ -1,2 +1,0 @@
-# Dependencias para leandro/scripts/ingest_slang_bench.py
-psycopg2-binary>=2.9.9

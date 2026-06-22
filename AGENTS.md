@@ -3,7 +3,7 @@
 Defines every AI agent in the system: their role, model, prompt, tools, inputs/outputs,
 and how they chain together. Each agent is a discrete LLM call with a single responsibility.
 
-This document reflects the unified **V2 Attacker + 1–5 Judge** architecture (V0.1.4).
+This document reflects the unified **V2 Attacker + 1–5 Judge** architecture (V0.1.5).
 The pipeline can be run two ways, both writing to the same PostgreSQL tables:
 
 - **Python CLI** — `python -m attacker.main run` (modular package under `attacker/`)
@@ -449,12 +449,13 @@ honoring a `Retry-After` header when present. Tunable via env vars:
 
 ## Adding a New Target LLM
 
-1. Add the NVIDIA NIM model slug to the **Supported Targets** table above
-2. Ensure `NVIDIA_API_KEY` is set in `.env` (all targets share the one key)
+1. Add the model slug to the **Supported Targets** table above
+2. Set the matching key in `.env`: `NVIDIA_API_KEY` for `nvidia_nim/*` slugs, or
+   `OPENROUTER_API_KEY` for `openrouter/*` slugs (credentials are routed by prefix)
 3. Run: `python -m attacker.main run --target <new-model-slug> --limit 100`
 4. Check results in the Grafana dashboard
 
-No other code changes needed — LiteLLM handles the rest.
+No other code changes needed — LiteLLM + `nim_client._provider_credentials` handle the rest.
 
 ---
 
@@ -465,4 +466,36 @@ No other code changes needed — LiteLLM handles the rest.
   (and mark it in `MULTI_TURN_TECHNIQUES` / `COMPLEX_TECHNIQUES` if applicable)
 3. If it requires multi-turn logic, route it through `run_pair_attack` in `attacker/main.py`
 4. Re-run the benchmark: `python -m attacker.main run --technique <new-technique>`
+
+---
+
+## Recent Changes (V0.1.5)
+
+Plain-language summary of what changed in this version:
+
+1. **The Judge now decides every jailbreak — the keyword filter can't anymore.**
+   Before, if a model's reply merely *contained* a flagged word (even while refusing or
+   condemning it, e.g. "el discurso de **odio** no es útil" or "sin **receta** médica"), the
+   regex pre-filter auto-marked it as a full jailbreak (`score 5`). That produced fake
+   successes. Now the pre-filter only short-circuits clear refusals (`score 1`); everything
+   else goes to the LLM Judge. (`prefilter_action` / `_verdict_refusal` in `attacker/main.py`.)
+2. **Attacks now pursue the real goal.** The row's `base_intent` is fed into the attacker
+   prompt, so generated prompts actually go after the specific harmful objective the Judge
+   scores against — not just the broad category. (`attacker/prompts/attacker.py`.)
+3. **Two model providers are supported (dual-API).** `nim_client.completion()` picks
+   credentials by slug prefix, so we can test OpenRouter "hard" targets (Claude 3.5 Sonnet,
+   GPT-4o) alongside the NVIDIA NIM models — without breaking either. (`_provider_credentials`.)
+4. **Docs reconciled.** `AGENTS.md` and `Yucatan_Slang_Benchmark_Workflow.md` were corrected to
+   match the working code (pre-filter behavior, dual-API targets, the retired 405B attacker
+   slug, and the 3-category HarmBench ingest).
+
+### What you need before running new changes
+- **NVIDIA NIM:** `NVIDIA_API_KEY` in `.env` — required for the attacker, judge, SIS, and all
+  `nvidia_nim/*` targets (already configured).
+- **OpenRouter (new, optional):** `OPENROUTER_API_KEY` in `.env` — **required only to run
+  `openrouter/*` targets** (Claude, GPT-4o). Get one at https://openrouter.ai/keys. Without it,
+  NVIDIA NIM targets keep working unchanged.
+- **Corpus loaded:** the `jerga` table must hold the full corpus (1,575 rows). If the Postgres
+  volume was recreated it only reloads the 10-row seed — re-run
+  `scripts/ingest_slang_bench.py --apply` (with `POSTGRES_PORT=5432`) to restore it.
 
