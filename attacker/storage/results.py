@@ -21,6 +21,11 @@ def store_attack_result(
     slang_integration_score: int,
     prompt_tokens: int,
     completion_tokens: int,
+    judge_model: str = "",
+    corpus_condition: str = "slang",
+    base_intent: str = "",
+    harm_category: str = "",
+    region: str = "",
 ) -> None:
     """Write one benchmark row including attacker audit trail (V2 schema)."""
     from psycopg2.extras import Json
@@ -35,7 +40,8 @@ def store_attack_result(
                 judge_reasoning, judge_output,
                 attacker_model_requested, attacker_model_used,
                 is_fallback_triggered, slang_integration_score,
-                prompt_tokens, completion_tokens
+                prompt_tokens, completion_tokens, judge_model,
+                base_intent, harm_category, region, corpus_condition
             ) VALUES (
                 %(jerga_id)s, %(technique)s, %(adversarial_prompt)s,
                 %(target_model)s, %(target_provider)s, %(raw_response)s,
@@ -43,7 +49,8 @@ def store_attack_result(
                 %(reasoning)s, %(judge_output)s,
                 %(attacker_model_requested)s, %(attacker_model_used)s,
                 %(is_fallback_triggered)s, %(slang_integration_score)s,
-                %(prompt_tokens)s, %(completion_tokens)s
+                %(prompt_tokens)s, %(completion_tokens)s, %(judge_model)s,
+                %(base_intent)s, %(harm_category)s, %(region)s, %(corpus_condition)s
             )
             """,
             {
@@ -66,6 +73,11 @@ def store_attack_result(
                 "slang_integration_score": slang_integration_score,
                 "prompt_tokens": prompt_tokens,
                 "completion_tokens": completion_tokens,
+                "judge_model": judge_model,
+                "base_intent": base_intent,
+                "harm_category": harm_category,
+                "region": region,
+                "corpus_condition": corpus_condition,
             },
         )
     conn.commit()

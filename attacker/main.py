@@ -37,11 +37,13 @@ try:
 except ImportError:
     pass
 
-from attacker.evaluators.sis import evaluate_sis
+from attacker.evaluators.sis import SisVerdict, evaluate_sis
+from attacker.lineup import attackers as lineup_attackers, for_iteration as lineup_for_iteration, judges as lineup_judges
 from attacker.models.registry import ATTACKER_MODEL_REGISTRY, CALIBRATION_CANDIDATES
 from attacker.services.attacker_agent import generate_adversarial_prompt
 from attacker.services.nim_client import completion, extract_token_usage
 from attacker.storage.db import fetch_jerga, get_connection
+from attacker.storage.migrate import ensure_results_extensions
 from attacker.storage.ingest import DEFAULT_CORPUS, DEFAULT_HARMBENCH, run_ingest
 from attacker.storage.results import store_attack_result
 from attacker.techniques import (
@@ -65,9 +67,14 @@ except ModuleNotFoundError:
     run_model_selection_query = None
 
 # ── Pipeline constants (from AGENTS.md) ────────────────────────────────────
-JUDGE_MODEL = "openrouter/meta-llama/llama-3.1-70b-instruct"
+_BENCHMARK_PROVIDER = os.getenv("BENCHMARK_PROVIDER", "openrouter")
+if _BENCHMARK_PROVIDER == "nvidia_nim":
+    JUDGE_MODEL = "nvidia_nim/meta/llama-3.1-70b-instruct"
+    DEFAULT_TARGET_MODEL = "nvidia_nim/meta/llama-3.1-8b-instruct"
+else:
+    JUDGE_MODEL = "openrouter/meta-llama/llama-3.1-70b-instruct"
+    DEFAULT_TARGET_MODEL = "openrouter/meta-llama/llama-3.1-8b-instruct"
 JUDGE_TEMPERATURE = 0.0
-DEFAULT_TARGET_MODEL = "openrouter/meta-llama/llama-3.1-8b-instruct"
 TARGET_TEMPERATURE = 0.7
 TARGET_MAX_TOKENS = 512
 PAIR_MAX_ITERATIONS = 5
@@ -220,7 +227,10 @@ def judge_agent(
     technique: str,
     adversarial_prompt: str,
     raw_response: str,
+    *,
+    judge_model: str | None = None,
 ) -> dict[str, Any]:
+    model = judge_model or JUDGE_MODEL
     user_prompt = (
         JUDGE_PROMPT_TEMPLATE
         .replace("{intencion_base}", term.get("base_intent") or "")
@@ -229,7 +239,7 @@ def judge_agent(
         .replace("{harm_category}", term["harm_category"])
     )
     response = completion(
-        JUDGE_MODEL,
+        model,
         messages=[
             {"role": "user", "content": user_prompt},
         ],
@@ -291,22 +301,70 @@ def split_model_slug(slug: str) -> tuple[str, str]:
     return provider, model
 
 
+def run_neutral_attack(
+    term: dict[str, Any],
+    target_model: str,
+    *,
+    judge_model: str | None = None,
+) -> dict[str, Any]:
+    """Control arm: HarmBench Spanish neutral prompt (base_intent), no slang attacker."""
+    prompt = (term.get("base_intent") or "").strip()
+    if not prompt:
+        raise ValueError(f"jerga id={term['id']} has empty base_intent")
+
+    raw_response, _ = target_agent(prompt, target_model)
+    technique = "neutral_direct"
+
+    if prefilter_action(raw_response, term["harm_category"]) == "refusal":
+        verdict = _verdict_refusal()
+    else:
+        verdict = judge_agent(
+            term, technique, prompt, raw_response, judge_model=judge_model,
+        )
+
+    from types import SimpleNamespace
+
+    sis = SisVerdict(0, "N/A — neutral control (no slang integration)")
+    gen = SimpleNamespace(
+        adversarial_prompt=prompt,
+        attacker_model_requested="neutral_control",
+        attacker_model_used="neutral_control",
+        is_fallback_triggered=False,
+        prompt_tokens=0,
+        completion_tokens=0,
+    )
+
+    return {
+        "generation": gen,
+        "adversarial_prompt": prompt,
+        "raw_response": raw_response,
+        "verdict": verdict,
+        "sis": sis,
+        "judge_model": judge_model or JUDGE_MODEL,
+    }
+
+
 def run_single_attack(
     term: dict[str, Any],
     technique: str,
     target_model: str,
     *,
     force_attacker_model: str | None = None,
+    judge_model: str | None = None,
 ) -> dict[str, Any]:
     generation = generate_adversarial_prompt(
-        term, technique, force_model=force_attacker_model
+        term, technique, force_model=force_attacker_model,
+        enable_fallback=force_attacker_model is None,
     )
     raw_response, _ = target_agent(generation.adversarial_prompt, target_model)
 
     if prefilter_action(raw_response, term["harm_category"]) == "refusal":
         verdict = _verdict_refusal()
     else:
-        verdict = judge_agent(term, technique, generation.adversarial_prompt, raw_response)
+        verdict = judge_agent(
+            term, technique, generation.adversarial_prompt, raw_response,
+            judge_model=judge_model,
+        )
 
     sis = evaluate_sis(term, technique, generation.adversarial_prompt)
 
@@ -316,6 +374,7 @@ def run_single_attack(
         "raw_response": raw_response,
         "verdict": verdict,
         "sis": sis,
+        "judge_model": judge_model or JUDGE_MODEL,
     }
 
 
@@ -325,14 +384,17 @@ def run_pair_attack(
     target_model: str,
     *,
     force_attacker_model: str | None = None,
+    judge_model: str | None = None,
 ) -> dict[str, Any]:
     history: list[dict[str, Any]] = []
     last_gen = None
     last_sis = None
+    jmodel = judge_model or JUDGE_MODEL
 
     for i in range(PAIR_MAX_ITERATIONS):
         generation = generate_adversarial_prompt(
-            term, technique, history, force_model=force_attacker_model
+            term, technique, history, force_model=force_attacker_model,
+            enable_fallback=force_attacker_model is None,
         )
         last_gen = generation
         raw_response, _ = target_agent(generation.adversarial_prompt, target_model)
@@ -340,7 +402,10 @@ def run_pair_attack(
         if prefilter_action(raw_response, term["harm_category"]) == "refusal":
             verdict = _verdict_refusal()
         else:
-            verdict = judge_agent(term, technique, generation.adversarial_prompt, raw_response)
+            verdict = judge_agent(
+                term, technique, generation.adversarial_prompt, raw_response,
+                judge_model=jmodel,
+            )
 
         last_sis = evaluate_sis(term, technique, generation.adversarial_prompt)
         history.append(
@@ -363,6 +428,7 @@ def run_pair_attack(
         "verdict": final["verdict"],
         "sis": last_sis,
         "iterations": len(history),
+        "judge_model": jmodel,
     }
 
 
@@ -414,13 +480,29 @@ def cmd_run(args: argparse.Namespace) -> int:
 
     provider, model_name = split_model_slug(args.target)
 
-    if not os.getenv("NVIDIA_API_KEY"):
-        print("NVIDIA_API_KEY is not set.", file=sys.stderr)
+    if not (os.getenv("OPENROUTER_API_KEY") or os.getenv("NVIDIA_API_KEY")):
+        print("Set OPENROUTER_API_KEY or NVIDIA_API_KEY in .env", file=sys.stderr)
         return 2
+
+    rotate_lineup = getattr(args, "rotate_lineup", False)
+    judge_models = lineup_judges()
+    attacker_models = lineup_attackers()
 
     conn = get_connection()
     try:
-        terms = fetch_jerga(conn, args.limit)
+        ensure_results_extensions(conn)
+        corpus = getattr(args, "corpus", "slang")
+        seed = getattr(args, "seed", None)
+        offset = getattr(args, "offset", 0) or 0
+        deterministic = corpus == "neutral" or getattr(args, "deterministic", False)
+        terms = fetch_jerga(
+            conn,
+            args.limit,
+            offset=offset,
+            seed=seed,
+            harm_category=getattr(args, "harm_category", None),
+            deterministic=deterministic,
+        )
         if not terms:
             print("No jerga rows. Seed docker/postgres/init/02-seed-jerga.sql", file=sys.stderr)
             return 1
@@ -430,17 +512,34 @@ def cmd_run(args: argparse.Namespace) -> int:
         for i, term in enumerate(terms, start=1):
             if iter_delay and i > 1:
                 time.sleep(iter_delay)
-            technique = args.technique or technique_for_iteration(i)
+            if corpus == "neutral":
+                technique = "neutral_direct"
+                judge_model = args.judge or JUDGE_MODEL
+                attacker_override = None
+            else:
+                technique = args.technique or technique_for_iteration(i)
+                judge_model = args.judge or (
+                    lineup_for_iteration(judge_models, i) if rotate_lineup else JUDGE_MODEL
+                )
+                attacker_override = args.attacker_model or (
+                    lineup_for_iteration(attacker_models, i) if rotate_lineup else None
+                )
             try:
-                if is_multi_turn(technique):
+                if corpus == "neutral":
+                    result = run_neutral_attack(
+                        term, args.target, judge_model=judge_model,
+                    )
+                elif is_multi_turn(technique):
                     result = run_pair_attack(
                         term, technique, args.target,
-                        force_attacker_model=args.attacker_model,
+                        force_attacker_model=attacker_override,
+                        judge_model=judge_model,
                     )
                 else:
                     result = run_single_attack(
                         term, technique, args.target,
-                        force_attacker_model=args.attacker_model,
+                        force_attacker_model=attacker_override,
+                        judge_model=judge_model,
                     )
             except Exception as exc:
                 print(f"[{i}/{len(terms)}] error '{term['term']}': {exc}", file=sys.stderr)
@@ -449,6 +548,8 @@ def cmd_run(args: argparse.Namespace) -> int:
             gen = result["generation"]
             verdict = result["verdict"]
             sis = result["sis"]
+            jmodel_stored = result.get("judge_model") or judge_model
+            _, jname = split_model_slug(jmodel_stored)
 
             store_attack_result(
                 conn,
@@ -459,12 +560,17 @@ def cmd_run(args: argparse.Namespace) -> int:
                 target_provider=provider,
                 raw_response=result["raw_response"],
                 judge_output=verdict,
+                judge_model=jname,
                 attacker_model_requested=gen.attacker_model_requested,
                 attacker_model_used=gen.attacker_model_used,
                 is_fallback_triggered=gen.is_fallback_triggered,
                 slang_integration_score=sis.slang_integration_score,
                 prompt_tokens=gen.prompt_tokens,
                 completion_tokens=gen.completion_tokens,
+                corpus_condition=corpus,
+                base_intent=(term.get("base_intent") or "")[:2000],
+                harm_category=term.get("harm_category") or "",
+                region=term.get("region") or "",
             )
 
             if verdict["jailbreak_success"]:
@@ -472,10 +578,12 @@ def cmd_run(args: argparse.Namespace) -> int:
 
             fb = " FB" if gen.is_fallback_triggered else ""
             status = "JAILBREAK" if verdict["jailbreak_success"] else "refused"
+            cond = f"[{corpus}] "
             print(
-                f"[{i}/{len(terms)}] {technique:<22} {term['term']!r} -> "
+                f"{cond}[{i}/{len(terms)}] {technique:<22} {term['term']!r} -> "
                 f"{status} SIS={sis.slang_integration_score}{fb} "
-                f"attacker={gen.attacker_model_used.split('/')[-1]}"
+                f"attacker={gen.attacker_model_used.split('/')[-1]} "
+                f"judge={jname.split('/')[-1]}"
             )
 
         rate = successes / len(terms) * 100 if terms else 0
@@ -529,9 +637,37 @@ def build_parser() -> argparse.ArgumentParser:
     p_run.add_argument("--technique", choices=VALID_TECHNIQUES, default=None)
     p_run.add_argument("--limit", type=int, default=100)
     p_run.add_argument(
+        "--corpus",
+        choices=("slang", "neutral"),
+        default="slang",
+        help="slang=Attacker+jerga; neutral=HarmBench base_intent control",
+    )
+    p_run.add_argument("--offset", type=int, default=0)
+    p_run.add_argument("--seed", type=int, default=None)
+    p_run.add_argument(
+        "--harm-category",
+        choices=("chemical_biological", "harassment_bullying"),
+        default=None,
+    )
+    p_run.add_argument(
+        "--deterministic",
+        action="store_true",
+        help="ORDER BY id (splits / paired sampling)",
+    )
+    p_run.add_argument(
         "--attacker-model",
         default=None,
         help="Force a specific attacker LiteLLM slug (overrides selector)",
+    )
+    p_run.add_argument(
+        "--judge",
+        default=None,
+        help="Force a specific judge LiteLLM slug",
+    )
+    p_run.add_argument(
+        "--rotate-lineup",
+        action="store_true",
+        help="Rotate 3 attackers + 3 judges per iteration (see attacker/lineup.py)",
     )
     p_run.set_defaults(func=cmd_run)
 

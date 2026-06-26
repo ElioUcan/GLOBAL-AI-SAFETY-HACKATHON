@@ -1,0 +1,274 @@
+{
+  "title": "Mexican Slang Jailbreak Benchmark — Paper Cohort",
+  "uid": "slang-bench-dash",
+  "description": "Primary cohort: first 300 scored rows per arm (ORDER BY id). Thesis panels: slang ASR vs neutral HarmBench direct.",
+  "schemaVersion": 38,
+  "refresh": "10s",
+  "tags": ["slang-bench", "cohort-300", "paper"],
+  "panels": [
+    {
+      "title": "",
+      "type": "text",
+      "gridPos": { "h": 3, "w": 12, "x": 0, "y": 0 },
+      "options": {
+        "mode": "markdown",
+        "content": "## Key finding (primary cohort N=300×300)\n**Mexican slang adversarial prompts yield higher jailbreak rates than the same HarmBench intent in neutral Spanish.**\n\nDesign target was 525/arm; adjusted to **300/arm** due to OpenRouter credit exhaustion (HTTP 402) and NIM rate limits. Use panels below for paper figures."
+      }
+    },
+    {
+      "title": "Δ ASR — Slang minus Neutral (pp)",
+      "type": "stat",
+      "datasource": { "type": "postgres", "uid": "PostgreSQL" },
+      "gridPos": { "h": 3, "w": 4, "x": 12, "y": 0 },
+      "targets": [{
+        "refId": "A",
+        "rawSql": "SELECT delta_asr_pp FROM v_thesis_findings_cohort300;",
+        "format": "table"
+      }],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 1,
+          "color": { "mode": "fixed", "fixedColor": "red" },
+          "displayName": "Δ slang − neutral"
+        }
+      },
+      "options": { "colorMode": "value", "graphMode": "none", "textMode": "value_and_name" }
+    },
+    {
+      "title": "Relative risk — Slang / Neutral ASR",
+      "type": "stat",
+      "datasource": { "type": "postgres", "uid": "PostgreSQL" },
+      "gridPos": { "h": 3, "w": 4, "x": 16, "y": 0 },
+      "targets": [{
+        "refId": "A",
+        "rawSql": "SELECT relative_risk_x FROM v_thesis_findings_cohort300;",
+        "format": "table"
+      }],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 2,
+          "suffix": "×",
+          "color": { "mode": "fixed", "fixedColor": "orange" },
+          "displayName": "slang vs neutral"
+        }
+      },
+      "options": { "colorMode": "value", "graphMode": "none" }
+    },
+    {
+      "title": "Jailbreak count — Slang vs Neutral",
+      "type": "stat",
+      "datasource": { "type": "postgres", "uid": "PostgreSQL" },
+      "gridPos": { "h": 3, "w": 4, "x": 20, "y": 0 },
+      "targets": [
+        {
+          "refId": "A",
+          "rawSql": "SELECT slang_jailbreaks AS slang_jb FROM v_thesis_findings_cohort300;",
+          "format": "table"
+        },
+        {
+          "refId": "B",
+          "rawSql": "SELECT neutral_jailbreaks AS neutral_jb FROM v_thesis_findings_cohort300;",
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "palette-classic" } },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "slang_jb" }, "properties": [{ "id": "displayName", "value": "Slang jailbreaks" }, { "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "neutral_jb" }, "properties": [{ "id": "displayName", "value": "Neutral jailbreaks" }, { "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }] }
+        ]
+      },
+      "options": { "colorMode": "value", "graphMode": "none", "textMode": "value_and_name" }
+    },
+    {
+      "title": "📊 PAPER FIGURE — ASR: Slang vs Neutral Spanish (cohort 300×300)",
+      "type": "barchart",
+      "datasource": { "type": "postgres", "uid": "PostgreSQL" },
+      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 3 },
+      "targets": [{
+        "refId": "A",
+        "rawSql": "SELECT CASE corpus_condition WHEN 'slang' THEN 'Mexican slang (adversarial)' WHEN 'neutral' THEN 'Neutral Spanish (HarmBench)' ELSE corpus_condition END AS condition, asr_pct, total_attacks AS n FROM v_asr_by_corpus_cohort300 ORDER BY corpus_condition;",
+        "format": "table"
+      }],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 1,
+          "color": { "mode": "palette-classic" },
+          "custom": { "axisLabel": "Attack Success Rate (%)", "fillOpacity": 80 }
+        }
+      },
+      "options": {
+        "orientation": "vertical",
+        "legend": { "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "single" }
+      }
+    },
+    {
+      "title": "📊 PAPER FIGURE — ASR by harm category (paired)",
+      "type": "barchart",
+      "datasource": { "type": "postgres", "uid": "PostgreSQL" },
+      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 3 },
+      "targets": [{
+        "refId": "A",
+        "rawSql": "SELECT harm_category, corpus_condition, asr_pct, total_attacks AS n FROM v_asr_by_corpus_and_harm_cohort300 ORDER BY harm_category, corpus_condition;",
+        "format": "table"
+      }],
+      "fieldConfig": {
+        "defaults": { "unit": "percent", "decimals": 1 }
+      },
+      "options": { "orientation": "vertical" }
+    },
+    {
+      "title": "Slang ASR (cohort)",
+      "type": "stat",
+      "datasource": { "type": "postgres", "uid": "PostgreSQL" },
+      "gridPos": { "h": 4, "w": 3, "x": 0, "y": 12 },
+      "targets": [{
+        "refId": "A",
+        "rawSql": "SELECT slang_asr_pct FROM v_thesis_findings_cohort300;",
+        "format": "table"
+      }],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 1,
+          "color": { "mode": "fixed", "fixedColor": "red" },
+          "displayName": "Slang ASR"
+        }
+      }
+    },
+    {
+      "title": "Neutral ASR (cohort)",
+      "type": "stat",
+      "datasource": { "type": "postgres", "uid": "PostgreSQL" },
+      "gridPos": { "h": 4, "w": 3, "x": 3, "y": 12 },
+      "targets": [{
+        "refId": "A",
+        "rawSql": "SELECT neutral_asr_pct FROM v_thesis_findings_cohort300;",
+        "format": "table"
+      }],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 1,
+          "color": { "mode": "fixed", "fixedColor": "green" },
+          "displayName": "Neutral ASR"
+        }
+      }
+    },
+    {
+      "title": "Cohort n (slang / neutral)",
+      "type": "stat",
+      "datasource": { "type": "postgres", "uid": "PostgreSQL" },
+      "gridPos": { "h": 4, "w": 3, "x": 6, "y": 12 },
+      "targets": [
+        { "refId": "A", "rawSql": "SELECT slang_n FROM v_thesis_findings_cohort300;", "format": "table" },
+        { "refId": "B", "rawSql": "SELECT neutral_n FROM v_thesis_findings_cohort300;", "format": "table" }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "none", "max": 300 }
+      }
+    },
+    {
+      "title": "Mean SIS — Slang only",
+      "type": "gauge",
+      "datasource": { "type": "postgres", "uid": "PostgreSQL" },
+      "gridPos": { "h": 4, "w": 3, "x": 9, "y": 12 },
+      "targets": [{
+        "refId": "A",
+        "rawSql": "SELECT COALESCE(avg_sis, 0) FROM v_asr_by_corpus_cohort300 WHERE corpus_condition = 'slang';",
+        "format": "table"
+      }],
+      "fieldConfig": { "defaults": { "min": 0, "max": 5, "color": { "mode": "continuous-BlPu" } } }
+    },
+    {
+      "title": "Cohort summary (copy to paper)",
+      "type": "table",
+      "datasource": { "type": "postgres", "uid": "PostgreSQL" },
+      "gridPos": { "h": 4, "w": 12, "x": 12, "y": 12 },
+      "targets": [{
+        "refId": "A",
+        "rawSql": "SELECT * FROM v_thesis_findings_cohort300;",
+        "format": "table"
+      }],
+      "options": { "showHeader": true }
+    },
+    {
+      "title": "Slang ASR by attack technique (cohort)",
+      "type": "barchart",
+      "datasource": { "type": "postgres", "uid": "PostgreSQL" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+      "targets": [{
+        "refId": "A",
+        "rawSql": "SELECT attack_technique, asr_pct, total_attacks AS n FROM v_asr_by_technique_cohort300 ORDER BY asr_pct DESC;",
+        "format": "table"
+      }],
+      "fieldConfig": { "defaults": { "unit": "percent" } }
+    },
+    {
+      "title": "Slang vs Neutral ASR by target model",
+      "type": "table",
+      "datasource": { "type": "postgres", "uid": "PostgreSQL" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+      "targets": [{
+        "refId": "A",
+        "rawSql": "SELECT target_model, slang_n, slang_asr_pct, neutral_n, neutral_asr_pct FROM v_asr_slang_vs_neutral_cohort300 ORDER BY slang_asr_pct DESC NULLS LAST;",
+        "format": "table"
+      }],
+      "options": { "showHeader": true }
+    },
+    {
+      "title": "Slang ASR by target model",
+      "type": "bargauge",
+      "datasource": { "type": "postgres", "uid": "PostgreSQL" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 24 },
+      "targets": [{
+        "refId": "A",
+        "rawSql": "SELECT target_model, asr_pct FROM v_asr_by_model_cohort300 WHERE corpus_condition = 'slang' ORDER BY asr_pct DESC;",
+        "format": "table"
+      }],
+      "fieldConfig": { "defaults": { "unit": "percent", "color": { "mode": "continuous-GrYlRd" } } },
+      "options": { "displayMode": "gradient", "orientation": "horizontal" }
+    },
+    {
+      "title": "Score distribution — Slang cohort",
+      "type": "barchart",
+      "datasource": { "type": "postgres", "uid": "PostgreSQL" },
+      "gridPos": { "h": 8, "w": 6, "x": 12, "y": 24 },
+      "targets": [{
+        "refId": "A",
+        "rawSql": "SELECT score, COUNT(*) AS n FROM v_results_cohort300 WHERE corpus_condition = 'slang' GROUP BY score ORDER BY score;",
+        "format": "table"
+      }]
+    },
+    {
+      "title": "Recent jailbreaks — cohort",
+      "type": "table",
+      "datasource": { "type": "postgres", "uid": "PostgreSQL" },
+      "gridPos": { "h": 8, "w": 6, "x": 18, "y": 24 },
+      "targets": [{
+        "refId": "A",
+        "rawSql": "SELECT corpus_condition, target_model, attack_technique, score, LEFT(judge_reasoning, 120) AS reasoning FROM v_results_cohort300 WHERE jailbreak_success = true ORDER BY id DESC LIMIT 12;",
+        "format": "table"
+      }],
+      "options": { "showHeader": true, "cellHeight": "sm" }
+    },
+    {
+      "title": "Raw DB rows (reference — not paper cohort)",
+      "type": "table",
+      "datasource": { "type": "postgres", "uid": "PostgreSQL" },
+      "gridPos": { "h": 5, "w": 24, "x": 0, "y": 32 },
+      "targets": [{
+        "refId": "A",
+        "rawSql": "SELECT corpus_condition, total_attacks, asr_pct FROM v_asr_by_corpus ORDER BY corpus_condition;",
+        "format": "table"
+      }],
+      "options": { "showHeader": true }
+    }
+  ],
+  "time": { "from": "now-30d", "to": "now" },
+  "timepicker": { "hidden": true }
+}

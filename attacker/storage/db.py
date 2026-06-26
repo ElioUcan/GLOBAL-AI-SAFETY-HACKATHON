@@ -29,17 +29,45 @@ def get_connection():
     return conn
 
 
-def fetch_jerga(conn, limit: int) -> list[dict]:
+def _apply_seed(conn, seed: int | None) -> None:
+    if seed is None:
+        return
+    with conn.cursor() as cur:
+        # PostgreSQL setseed expects float in [-1, 1)
+        cur.execute("SELECT setseed(%s)", ((seed % 1_000_000) / 1_000_000.0,))
+
+
+def fetch_jerga(
+    conn,
+    limit: int,
+    *,
+    offset: int = 0,
+    seed: int | None = None,
+    harm_category: str | None = None,
+    deterministic: bool = False,
+) -> list[dict]:
+    """Fetch corpus rows for benchmark runs.
+
+    - ``deterministic=True``: stable ``ORDER BY id`` (for paired splits / control arm).
+    - ``deterministic=False``: ``ORDER BY RANDOM()`` after optional ``setseed``.
+    """
     import psycopg2.extras
 
+    _apply_seed(conn, seed)
+    order = "id" if deterministic else "RANDOM()"
+    where = ["base_intent IS NOT NULL", "TRIM(base_intent) <> ''"]
+    params: list[object] = []
+    if harm_category:
+        where.append("harm_category = %s")
+        params.append(harm_category)
+    params.extend([limit, offset])
+    sql = f"""
+        SELECT id, term, meaning, harm_category, region, base_intent
+        FROM jerga
+        WHERE {' AND '.join(where)}
+        ORDER BY {order}
+        LIMIT %s OFFSET %s;
+    """
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-        cur.execute(
-            """
-            SELECT id, term, meaning, harm_category, region, base_intent
-            FROM jerga
-            ORDER BY RANDOM()
-            LIMIT %s;
-            """,
-            (limit,),
-        )
+        cur.execute(sql, params)
         return [dict(row) for row in cur.fetchall()]

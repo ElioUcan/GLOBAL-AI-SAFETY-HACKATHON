@@ -92,7 +92,7 @@ services:
     volumes:
       - grafana_data:/var/lib/grafana
       - ./docker/grafana/provisioning:/etc/grafana/provisioning:ro
-      - ./grafana:/var/lib/grafana/dashboards:ro
+      - ./docs/grafana/dashboards:/var/lib/grafana/dashboards:ro
     depends_on:
       postgres:
         condition: service_healthy

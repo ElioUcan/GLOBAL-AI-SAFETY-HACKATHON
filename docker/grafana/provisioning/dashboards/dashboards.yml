@@ -9,6 +9,6 @@ providers:
     updateIntervalSeconds: 30
     allowUiUpdates: true
     options:
-      # dashboard JSON files are mounted here from ./grafana (see compose.yml)
+      # dashboard JSON files are mounted here from ./docs/grafana/dashboards (see compose.yml)
       path: /var/lib/grafana/dashboards
       foldersFromFilesStructure: true

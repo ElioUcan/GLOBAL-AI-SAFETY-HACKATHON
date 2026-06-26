@@ -85,7 +85,11 @@ def evaluate_sis(
     use_heuristic: bool = False,
 ) -> SisVerdict:
     """Evaluate SIS via sub-evaluator LLM or heuristic fallback."""
-    if use_heuristic:
+    if use_heuristic or os.getenv("SIS_USE_HEURISTIC", "").lower() in (
+        "1",
+        "true",
+        "yes",
+    ):
         return heuristic_sis(adversarial_prompt, term)
 
     model = evaluator_model or os.getenv(
